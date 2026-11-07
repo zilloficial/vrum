@@ -19,8 +19,9 @@ import { Mapa, type Pino } from '../mapa';
 import { Avatar, Carregando, Erro, Estrelas, Folha, IconeCategoria, SeloEstado } from '../componentes';
 import type { VisaoChamado } from '../tipos';
 
+type ConviteEnviado = { prestador: string; usuarioNome: string; estado: 'PENDENTE' | 'ACEITO' | 'RECUSADO' | 'EXPIRADO' | 'CANCELADO'; etapa: number; restanteMs: number; distanciaKm: number | null };
 type Visao = VisaoChamado & {
-  conversaId: string | null; avaliado: boolean;
+  conversaId: string | null; avaliado: boolean; convites?: ConviteEnviado[];
   motorista: { id: string; nome: string; fotoUrl: string | null };
   prestador: { id: string; nomeComercial: string; usuarioNome: string; fotoUrl: string | null } | null;
   responsavel: { usuarioId: string; nome: string; fotoUrl: string | null } | null;
@@ -57,8 +58,9 @@ export function TelaChamado() {
   const [ocupado, setOcupado] = useState(false);
   const pararRef = useRef<(() => void) | null>(null);
 
+  const [carregadoEm, setCarregadoEm] = useState(Date.now());
   const carregar = useCallback(async () => {
-    try { setV(await get<Visao>(`/chamados/${id}`)); } catch (e) { setErro((e as Error).message); }
+    try { setV(await get<Visao>(`/chamados/${id}`)); setCarregadoEm(Date.now()); } catch (e) { setErro((e as Error).message); }
   }, [id]);
   const carregarPosicoes = useCallback(async () => {
     try { setParticipantes((await get<{ participantes: Participante[] }>(`/chamados/${id}/localizacao`)).participantes); } catch { /* sem rastreamento */ }
@@ -85,8 +87,16 @@ export function TelaChamado() {
     s.on('chamado:estado', aoEstado);
     s.on('localizacao:posicao', aoPosicao);
     s.on('localizacao:compartilhamento', aoCompartilhamento);
-    const relogio = window.setInterval(() => setAgora(Date.now()), 5000);
+    const relogio = window.setInterval(() => setAgora(Date.now()), 1000);
+    // Rede de segurança: ao reconectar, ao voltar para a aba e a cada 10 s, confere o estado.
+    const conferir = () => { if (document.visibilityState === 'visible') { void carregar(); void carregarPosicoes(); } };
+    s.on('connect', conferir);
+    document.addEventListener('visibilitychange', conferir);
+    const busca = window.setInterval(conferir, 10_000);
     return () => {
+      s.off('connect', conferir);
+      document.removeEventListener('visibilitychange', conferir);
+      window.clearInterval(busca);
       sair();
       s.off('chamado:estado', aoEstado);
       s.off('localizacao:posicao', aoPosicao);
@@ -201,16 +211,35 @@ export function TelaChamado() {
         </div>
 
         {/* Mensagem principal do estado */}
-        {(estado === 'BUSCANDO_PROFISSIONAL' || estado === 'AGUARDANDO_RESPOSTA') && (
-          <div className="card linha">
-            <Radar size={28} color="var(--verde)" className="girando" style={{ margin: 0, border: 0, width: 28, height: 28 }} />
-            <div><h3>{ch.modalidade === 'ESCOLHER_PROFISSIONAL' ? 'Aguardando resposta do profissional' : 'Procurando profissionais perto de você'}</h3>
-              <div className="mini">{ch.modalidade === 'BUSCAR_DISPONIVEIS' ? `Etapa ${ch.etapaBusca} da busca. Ampliamos o raio se ninguém aceitar.` : 'Você será avisado assim que ele responder.'}</div></div>
-          </div>
-        )}
+        {(estado === 'BUSCANDO_PROFISSIONAL' || estado === 'AGUARDANDO_RESPOSTA') && (() => {
+          const pendentes = (v.convites ?? []).filter((c) => c.estado === 'PENDENTE');
+          const restante = pendentes.length ? Math.max(0, Math.max(...pendentes.map((c) => c.restanteMs)) - (agora - carregadoEm)) : 0;
+          const seg = Math.ceil(restante / 1000);
+          return (
+            <div className="card coluna" style={{ gap: 10 }}>
+              <div className="linha">
+                <Radar size={28} color="var(--verde)" className="girando" style={{ margin: 0, border: 0, width: 28, height: 28, flex: 'none' }} />
+                <div className="cresce">
+                  <h3>{ch.modalidade === 'ESCOLHER_PROFISSIONAL'
+                    ? `Aguardando ${pendentes[0]?.prestador ?? 'o profissional'} responder`
+                    : 'Procurando profissionais perto de você'}</h3>
+                  <div className="mini">{ch.modalidade === 'BUSCAR_DISPONIVEIS'
+                    ? `Etapa ${ch.etapaBusca} da busca · ${pendentes.length} ${pendentes.length === 1 ? 'profissional convidado' : 'profissionais convidados'}. Se ninguém aceitar, ampliamos o raio.`
+                    : 'Você será avisado assim que ele responder.'}</div>
+                </div>
+                {pendentes.length > 0 && <span className="contagem" style={{ flex: 'none' }}>{Math.floor(seg / 60)}:{String(seg % 60).padStart(2, '0')}</span>}
+              </div>
+              {ch.modalidade === 'BUSCAR_DISPONIVEIS' && pendentes.length > 0 && (
+                <div className="mini">Convidados: {pendentes.map((c) => c.prestador).join(', ')}</div>
+              )}
+            </div>
+          );
+        })()}
         {estado === 'SEM_ATENDIMENTO' && souMotorista && (
           <div className="card coluna">
-            <h3>Ninguém aceitou a tempo</h3>
+            <h3>{ch.modalidade === 'ESCOLHER_PROFISSIONAL' && v.convites?.length
+              ? `${v.convites[v.convites.length - 1]!.prestador} não respondeu a tempo`
+              : v.convites?.length ? 'Ninguém aceitou a tempo' : 'Nenhum profissional disponível por perto'}</h3>
             <p className="mini" style={{ margin: 0 }}>Você pode ampliar a busca para todos os disponíveis ou escolher outro profissional.</p>
             <div className="dupla">
               <button className="btn primario" disabled={ocupado} onClick={() => executar('REABRIR_BUSCA' as EventoChamado)}>Ampliar busca</button>

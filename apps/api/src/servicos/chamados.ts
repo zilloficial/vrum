@@ -481,7 +481,17 @@ export async function obterChamado(ctx: Contexto, usuarioId: string, chamadoId: 
   const [categoria] = await db.select({ nome: categorias.nome, slug: categorias.slug }).from(categorias).where(eq(categorias.id, ch.categoriaId));
   const avaliado = (await db.select({ id: avaliacoes.id }).from(avaliacoes)
     .where(and(eq(avaliacoes.chamadoId, ch.id), eq(avaliacoes.autorId, usuarioId)))).length > 0;
+  // Para o motorista: a quem o pedido foi enviado e até quando (deixa claro quem precisa responder).
+  const convites = papel === 'MOTORISTA' && ['BUSCANDO_PROFISSIONAL', 'AGUARDANDO_RESPOSTA', 'SEM_ATENDIMENTO'].includes(ch.estado)
+    ? await db.select({
+      prestador: prestadores.nomeComercial, usuarioNome: prestadores.usuarioNome, estado: convitesChamado.estado,
+      etapa: convitesChamado.etapa, expiraEm: convitesChamado.expiraEm, distanciaKm: convitesChamado.distanciaKm,
+    }).from(convitesChamado).innerJoin(prestadores, eq(prestadores.id, convitesChamado.prestadorId))
+      .where(eq(convitesChamado.chamadoId, ch.id)).orderBy(convitesChamado.criadoEm)
+      .then((cs) => cs.map((c) => ({ ...c, restanteMs: Math.max(0, c.expiraEm.getTime() - ctx.agora().getTime()) })))
+    : [];
   return {
+    convites,
     chamado: ch,
     papel,
     veiculo: veiculo && { ...veiculo, placa: mostrarPlaca ? veiculo.placa : null },
@@ -492,7 +502,8 @@ export async function obterChamado(ctx: Contexto, usuarioId: string, chamadoId: 
 }
 
 export async function convitesPendentes(ctx: Contexto, usuarioId: string) {
-  return ctx.db.select({
+  const agora = ctx.agora();
+  const linhas = await ctx.db.select({
     convite: convitesChamado,
     descricao: chamados.descricao,
     categoriaId: chamados.categoriaId,
@@ -506,7 +517,9 @@ export async function convitesPendentes(ctx: Contexto, usuarioId: string) {
     .innerJoin(membrosPrestador, and(eq(membrosPrestador.prestadorId, convitesChamado.prestadorId), eq(membrosPrestador.usuarioId, usuarioId)))
     .innerJoin(chamados, eq(chamados.id, convitesChamado.chamadoId))
     .innerJoin(veiculos, eq(veiculos.id, chamados.veiculoId))
-    .where(and(eq(convitesChamado.estado, 'PENDENTE'), sql`${convitesChamado.expiraEm} > ${ctx.agora()}`));
+    .where(and(eq(convitesChamado.estado, 'PENDENTE'), sql`${convitesChamado.expiraEm} > ${agora}`));
+  // Tempo restante calculado no servidor: o app não depende do relógio do aparelho.
+  return linhas.map((l) => ({ ...l, restanteMs: Math.max(0, l.convite.expiraEm.getTime() - agora.getTime()) }));
 }
 
 // ───────────────────────────── prazos (job periódico) ─────────────────────────────

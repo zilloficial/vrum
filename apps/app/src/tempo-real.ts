@@ -8,7 +8,7 @@ let socket: SocketVrum | null = null;
 
 export function conectar(): SocketVrum {
   if (socket) return socket;
-  socket = io(API_URL, { auth: (cb) => cb({ token: tokenAtual() }), transports: ['websocket'], reconnectionDelayMax: 8000 });
+  socket = io(API_URL, { auth: (cb) => cb({ token: tokenAtual() }), transports: ['websocket', 'polling'], reconnectionDelayMax: 8000 });
   return socket;
 }
 
