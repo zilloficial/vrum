@@ -1,0 +1,21 @@
+{
+  "name": "vrum",
+  "private": true,
+  "version": "0.1.0",
+  "description": "VRUM — encontre profissionais automotivos, solicite atendimento e acompanhe a chegada em tempo real.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @vrum/api",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "npm run db:migrate -w @vrum/api",
+    "db:seed": "npm run db:seed -w @vrum/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

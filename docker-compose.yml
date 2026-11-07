@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: vrum
+      POSTGRES_PASSWORD: vrum
+      POSTGRES_DB: vrum
+    ports:
+      - "5432:5432"
+    volumes:
+      - vrum-pg:/var/lib/postgresql/data
+
+volumes:
+  vrum-pg:
