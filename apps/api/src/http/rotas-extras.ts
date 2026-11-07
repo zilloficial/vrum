@@ -5,10 +5,8 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import multipart from '@fastify/multipart';
 import fstatic from '@fastify/static';
-import { randomUUID } from 'node:crypto';
-import { createWriteStream, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { extname, resolve } from 'node:path';
-import { pipeline } from 'node:stream/promises';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { ESTADOS_CHAMADO } from '@vrum/shared';
@@ -18,6 +16,7 @@ import * as admin from '../servicos/admin.js';
 import * as conteudo from '../servicos/conteudo.js';
 import * as equipe from '../servicos/equipe.js';
 import * as qual from '../servicos/qualidade.js';
+import type { Armazenamento } from '../servicos/armazenamento.js';
 
 const uuid = z.string().uuid();
 const params = z.object({ id: uuid });
@@ -26,6 +25,7 @@ const TIPOS_PERMITIDOS = /^(image\/(jpeg|png|webp|heic)|video\/(mp4|quicktime|we
 export interface OpcoesExtras {
   pastaArquivos: string;
   urlPublica: string;
+  armazenamento: Armazenamento;
   comEfeitos: <T>(fn: (fx: Efeitos) => Promise<T>) => Promise<T>;
 }
 
@@ -36,7 +36,7 @@ export async function rotasExtras(app: FastifyInstance, ctx: Contexto, o: Opcoes
   const uidOpcional = (req: FastifyRequest) => (req.user as { sub?: string } | undefined)?.sub;
   const soAdmin = async (req: FastifyRequest) => { await req.jwtVerify(); await admin.exigirAdmin(ctx, uid(req)); };
 
-  // ── Arquivos (desenvolvimento: disco local; produção: trocar por S3/R2 mantendo a mesma rota) ──
+  // ── Arquivos: Supabase Storage em produção, disco local em desenvolvimento ──
   mkdirSync(o.pastaArquivos, { recursive: true });
   await app.register(multipart, { limits: { fileSize: 50 * 1024 * 1024, files: 1 } });
   await app.register(fstatic, { root: resolve(o.pastaArquivos), prefix: '/arquivos/', decorateReply: false });
@@ -45,11 +45,14 @@ export async function rotasExtras(app: FastifyInstance, ctx: Contexto, o: Opcoes
     const f = await req.file();
     if (!f) throw new ErroApp('ARQUIVO_OBRIGATORIO', 'Envie um arquivo.');
     if (!TIPOS_PERMITIDOS.test(f.mimetype)) throw new ErroApp('TIPO_NAO_PERMITIDO', 'Formato não aceito. Use foto, vídeo, áudio ou PDF.');
-    const nome = `${randomUUID()}${extname(f.filename).toLowerCase().slice(0, 6) || ''}`;
-    await pipeline(f.file, createWriteStream(resolve(o.pastaArquivos, nome)));
-    if (f.file.truncated) throw new ErroApp('ARQUIVO_GRANDE', 'Arquivo acima de 50 MB.');
     const tipo = f.mimetype.startsWith('image') ? 'IMAGEM' : f.mimetype.startsWith('video') ? 'VIDEO' : f.mimetype.startsWith('audio') ? 'AUDIO' : 'DOCUMENTO';
-    return reply.status(201).send({ url: `${o.urlPublica}/arquivos/${nome}`, tipo });
+    const url = await o.armazenamento.salvar(f.file, {
+      extensao: extname(f.filename).toLowerCase().replace(/[^.a-z0-9]/g, '').slice(0, 6),
+      tipoMime: f.mimetype,
+      pasta: tipo === 'DOCUMENTO' ? 'documentos' : 'midias',
+      conferir: () => { if (f.file.truncated) throw new ErroApp('ARQUIVO_GRANDE', 'Arquivo acima de 50 MB.'); },
+    });
+    return reply.status(201).send({ url, tipo });
   });
 
   // ── Conta ──

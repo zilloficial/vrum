@@ -25,6 +25,12 @@ export async function notificar(
   fx.paraUsuario(n.usuarioId, 'notificacao:nova', {
     id: registro!.id, tipo: n.tipo, titulo: n.titulo, corpo: n.corpo, chamadoId: n.chamadoId ?? null,
   });
+  // Convites agrupam por chamado (tag) para não empilhar avisos repetidos.
+  fx.push(n.usuarioId, {
+    titulo: n.titulo, corpo: n.corpo,
+    url: n.tipo === 'CONVITE_NOVO' ? '/p' : n.chamadoId ? `/chamados/${n.chamadoId}` : '/notificacoes',
+    tag: n.chamadoId ? `chamado-${n.chamadoId}` : undefined,
+  });
   return registro!;
 }
 

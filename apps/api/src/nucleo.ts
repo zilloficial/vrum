@@ -66,13 +66,22 @@ export class Efeitos {
   paraChamado<K extends keyof EventosServidor>(chamadoId: string, evento: K, payload: Parameters<EventosServidor[K]>[0]) {
     this.fila.push({ sala: `chamado:${chamadoId}`, evento, payload } as { sala: string } & Envio);
   }
+
+  /** Avisos push (navegador/celular), enviados só depois do commit. */
+  readonly pushes: { usuarioId: string; aviso: { titulo: string; corpo: string; url: string; tag?: string } }[] = [];
+  push(usuarioId: string, aviso: { titulo: string; corpo: string; url: string; tag?: string }) {
+    this.pushes.push({ usuarioId, aviso });
+  }
 }
 
 export interface Emissor {
   emitir(sala: string, evento: string, payload: unknown): void;
+  /** Opcional: entrega de push. Falhas não afetam a operação — o aviso já está na central. */
+  push?(usuarioId: string, aviso: { titulo: string; corpo: string; url: string; tag?: string }): Promise<unknown>;
 }
 
 export function despachar(fx: Efeitos, emissor?: Emissor) {
   if (!emissor) return;
   for (const e of fx.fila) emissor.emitir(e.sala, e.evento, e.payload);
+  for (const p of fx.pushes) void emissor.push?.(p.usuarioId, p.aviso)?.catch((e) => console.warn('push:', (e as Error).message));
 }

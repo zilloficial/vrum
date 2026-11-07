@@ -4,6 +4,9 @@ import { despachar, Efeitos, REGRAS_PADRAO, type Contexto, type Emissor } from '
 import { processarPrazos } from './servicos/chamados.js';
 import { carregarRegras } from './servicos/admin.js';
 import { criarTempoReal } from './tempo-real/socket.js';
+import { webPush } from './servicos/push.js';
+import { armazenamentoDoAmbiente } from './servicos/armazenamento.js';
+import { servicoRotasDoAmbiente } from './servicos/rotas.js';
 
 const url = process.env.DATABASE_URL;
 const segredo = process.env.JWT_SECRET;
@@ -14,15 +17,24 @@ const ctx: Contexto = { db, regras: { ...REGRAS_PADRAO }, agora: () => new Date(
 await carregarRegras(ctx); // prazos alterados pelo painel administrativo
 
 const porta = Number(process.env.PORT ?? 3333);
+const pastaArquivos = process.env.PASTA_ARQUIVOS ?? './arquivos';
+// No Render, RENDER_EXTERNAL_URL é preenchida automaticamente.
+const urlPublica = process.env.URL_PUBLICA ?? process.env.RENDER_EXTERNAL_URL ?? `http://localhost:${porta}`;
+
+// Integrações: cada uma liga sozinha quando a variável de ambiente existe.
+const armazenamento = armazenamentoDoAmbiente(pastaArquivos, urlPublica);
+const rotas = servicoRotasDoAmbiente();
+const push = webPush(db);
+
 let emissor: Emissor | undefined;
 const app = criarApp(ctx, {
   jwtSecret: segredo, corsOrigin: process.env.CORS_ORIGIN, emissor: () => emissor,
-  pastaArquivos: process.env.PASTA_ARQUIVOS ?? './arquivos',
-  // No Render, RENDER_EXTERNAL_URL é preenchida automaticamente.
-  urlPublica: process.env.URL_PUBLICA ?? process.env.RENDER_EXTERNAL_URL ?? `http://localhost:${porta}`,
+  pastaArquivos, urlPublica, armazenamento, rotas, push,
 });
 await app.ready();
-emissor = criarTempoReal(app.server, ctx, (t) => app.jwt.verify(t), process.env.CORS_ORIGIN).emissor;
+const tempoReal = criarTempoReal(app.server, ctx, (t) => app.jwt.verify(t), process.env.CORS_ORIGIN).emissor;
+emissor = { emitir: tempoReal.emitir, push: (usuarioId, aviso) => push.enviar(usuarioId, aviso) };
+app.log.info(`Arquivos: ${armazenamento.nome} · Rotas: ${rotas.nome} · Push: web (chaves ${process.env.VAPID_PUBLICA ? 'do ambiente' : 'do banco'})`);
 
 // Prazos: convites, conclusão automática, abandono e disponibilidade.
 // O advisory lock garante uma única execução mesmo com várias instâncias da API.

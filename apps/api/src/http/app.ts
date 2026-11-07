@@ -13,6 +13,9 @@ import * as loc from '../servicos/localizacao.js';
 import * as notif from '../servicos/notificacoes.js';
 import * as prest from '../servicos/prestadores.js';
 import { rotasExtras } from './rotas-extras.js';
+import { armazenamentoDoAmbiente, type Armazenamento } from '../servicos/armazenamento.js';
+import { rotaDoChamado, servicoRotasDoAmbiente, type ServicoRotas } from '../servicos/rotas.js';
+import type { ServicoPush } from '../servicos/push.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT { payload: { sub: string; admin?: boolean }; user: { sub: string; admin?: boolean } }
@@ -24,6 +27,7 @@ const params = z.object({ id: uuid });
 
 export function criarApp(ctx: Contexto, opts: {
   jwtSecret: string; corsOrigin?: string; emissor?: () => Emissor | undefined; pastaArquivos?: string; urlPublica?: string;
+  armazenamento?: Armazenamento; rotas?: ServicoRotas; push?: ServicoPush;
 }) {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
   app.register(cors, { origin: opts.corsOrigin ?? '*' });
@@ -140,6 +144,13 @@ export function criarApp(ctx: Contexto, opts: {
     return comEfeitos((fx) => chamadosSvc.executarAcao(ctx, fx, uid(req), params.parse(req.params).id, evento as chamadosSvc.EventoDoApp, dados));
   });
 
+  // Trajeto e previsão de chegada (OpenRouteService). Sem chave configurada, devolve só a distância em linha reta.
+  const rotas = opts.rotas ?? servicoRotasDoAmbiente();
+  app.get('/chamados/:id/rota', { onRequest: autenticado }, (req) => rotaDoChamado(ctx, rotas, uid(req), params.parse(req.params).id));
+
+  // Chave pública do Web Push (o app precisa dela para se inscrever).
+  app.get('/push/chave-publica', async () => ({ chave: (await opts.push?.chavePublica()) ?? null }));
+
   app.get('/chamados/:id/localizacao', { onRequest: autenticado }, (req) => loc.posicoesDoChamado(ctx, uid(req), params.parse(req.params).id));
 
   // ── Negociação e chat ──
@@ -188,6 +199,7 @@ export function criarApp(ctx: Contexto, opts: {
     rotasExtras(inst, ctx, {
       pastaArquivos: opts.pastaArquivos ?? './arquivos',
       urlPublica: opts.urlPublica ?? 'http://localhost:3333',
+      armazenamento: opts.armazenamento ?? armazenamentoDoAmbiente(opts.pastaArquivos ?? './arquivos', opts.urlPublica ?? 'http://localhost:3333'),
       comEfeitos,
     }).then(() => pronto(), pronto);
   });
