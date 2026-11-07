@@ -2,7 +2,8 @@
 #   API (com tempo real), app e painel. O banco é o PostgreSQL do Supabase.
 # No Render: New → Blueprint → escolha este repositório → Apply.
 #
-# DEMO=1 carrega as contas de demonstração (senha vrum1234). Remova antes do lançamento.
+# Modo real: os dados de demonstração são removidos a cada inicialização.
+# ADMIN_EMAILS define o administrador geral (vira admin ao entrar com a própria senha).
 # Plano gratuito: a API "dorme" após 15 min sem uso (o primeiro acesso demora ~1 min)
 # Para o lançamento, troque a API por um plano pago (sem pausa).
 
@@ -23,8 +24,8 @@ services:
         generateValue: true
       - key: CORS_ORIGIN
         value: "*"
-      - key: DEMO
-        value: "1"
+      - key: ADMIN_EMAILS          # administrador(es) geral(is), separados por vírgula
+        value: zilglezio@gmail.com
       # ── Integrações (veja SERVICOS.md). Pode deixar em branco: cada uma liga quando a chave existir. ──
       - key: SUPABASE_URL          # arquivos: https://xxxx.supabase.co
         sync: false

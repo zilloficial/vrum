@@ -4,6 +4,7 @@ import { and, eq, isNull, or } from 'drizzle-orm';
 import { usuarios, veiculos } from '../db/schema.js';
 import { ErroApp, naoEncontrado, type Contexto } from '../nucleo.js';
 import { violouUnico } from './chamados.js';
+import { emailsAdmin } from '../db/producao.js';
 
 export interface NovoUsuario {
   nome: string;
@@ -34,7 +35,13 @@ export async function entrar(ctx: Contexto, login: string, senha: string) {
   // Mesma mensagem para conta inexistente e senha errada.
   if (!u || !(await bcrypt.compare(senha, u.senhaHash))) throw new ErroApp('CREDENCIAIS_INVALIDAS', 'Login ou senha incorretos.', 401);
   if (u.suspensoEm) throw new ErroApp('CONTA_SUSPENSA', 'Conta suspensa. Fale com o suporte.', 403);
-  return { id: u.id, nome: u.nome, ehAdmin: u.ehAdmin };
+  // Administrador geral definido em ADMIN_EMAILS: promovido ao entrar com a senha da própria conta.
+  let ehAdmin = u.ehAdmin;
+  if (!ehAdmin && emailsAdmin().includes(u.email.toLowerCase())) {
+    await ctx.db.update(usuarios).set({ ehAdmin: true }).where(eq(usuarios.id, u.id));
+    ehAdmin = true;
+  }
+  return { id: u.id, nome: u.nome, ehAdmin };
 }
 
 export interface NovoVeiculo {

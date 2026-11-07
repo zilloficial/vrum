@@ -32,7 +32,7 @@ npm run dev:app                                 # App     → http://localhost:5
 npm run dev:painel                              # Painel  → http://localhost:5174
 ```
 
-### Contas de demonstração (`npm run db:demo`, senha `vrum1234`)
+### Contas de demonstração — só no seu computador (`npm run db:demo`, senha `vrum1234`)
 
 | Conta | Uso |
 |---|---|
@@ -77,7 +77,7 @@ O arquivo `render.yaml` cria a API, o app e o painel. O banco de dados é o Post
    - API: `https://vrum-api.onrender.com`
    (se algum nome já estiver em uso, o Render acrescenta um sufixo — veja no painel dele.)
 
-Com `DEMO=1` (padrão do blueprint) as contas de demonstração já vêm criadas. Remova essa variável antes do lançamento.
+O sistema roda em **modo real**: não há contas de demonstração em produção (se existirem, são removidas a cada inicialização). O administrador geral é definido em `ADMIN_EMAILS` (hoje `zilglezio@gmail.com`): crie a conta com esse e-mail no app e entre no painel — ela recebe o acesso de administrador no primeiro login.
 
 No plano gratuito, a API “dorme” após 15 minutos sem uso (o primeiro acesso demora cerca de 1 minuto). Para o lançamento, use um plano pago para a API.
 
