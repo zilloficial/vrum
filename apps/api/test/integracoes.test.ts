@@ -33,6 +33,15 @@ describe('Supabase Storage', () => {
     expect(url).toBe(chamadas[0]!.url.replace('/object/vrum/', '/object/public/vrum/'));
   });
 
+  it('aceita a URL do projeto colada com /rest/v1/', async () => {
+    const urls: string[] = [];
+    const arm = armazenamentoSupabase({ url: ' https://abc.supabase.co/rest/v1/ ', chave: 'sb_secret_x', bucket: 'vrum',
+      fetch: (async (u: string, init: RequestInit) => { urls.push(u); expect((init.headers as Record<string, string>).authorization).toBeUndefined(); return respostaFalsa(200, {}); }) as typeof fetch });
+    const url = await arm.salvar(Readable.from([Buffer.from('x')]), { extensao: '.png', tipoMime: 'image/png', pasta: 'midias' });
+    expect(urls[0]).toMatch(/^https:\/\/abc\.supabase\.co\/storage\/v1\/object\/vrum\//);
+    expect(url).toMatch(/^https:\/\/abc\.supabase\.co\/storage\/v1\/object\/public\/vrum\//);
+  });
+
   it('não publica arquivo acima do limite e traduz falhas do serviço', async () => {
     let chamou = false;
     const arm = armazenamentoSupabase({ url: 'https://abc.supabase.co', chave: 'k', bucket: 'vrum',

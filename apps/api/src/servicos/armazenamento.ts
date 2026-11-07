@@ -41,7 +41,8 @@ async function lerTudo(fluxo: Readable): Promise<Buffer> {
 }
 
 export function armazenamentoSupabase(c: { url: string; chave: string; bucket: string; fetch?: typeof fetch }): Armazenamento {
-  const base = c.url.replace(/\/$/, '');
+  // Aceita a URL do projeto também quando colada com /rest/v1 ou /storage/v1 no final.
+  const base = c.url.trim().replace(/\/+$/, '').replace(/\/(rest|storage)\/v1$/, '');
   const f = c.fetch ?? fetch;
   return {
     nome: 'supabase',
