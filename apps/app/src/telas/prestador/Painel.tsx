@@ -35,7 +35,8 @@ export function Painel() {
       const recebido = Date.now();
       setConvites(lista.map((c) => ({
         ...c,
-        fimLocal: recebido + c.restanteMs,
+        // Servidor antigo (sem restanteMs): usa o prazo absoluto como antes.
+        fimLocal: typeof c.restanteMs === 'number' ? recebido + c.restanteMs : new Date(c.convite.expiraEm).getTime(),
         totalMs: new Date(c.convite.expiraEm).getTime() - new Date(c.convite.criadoEm).getTime(),
       })));
     } catch { /* sem conexão: tenta de novo na próxima rodada */ }
