@@ -29,6 +29,21 @@ A execução pela raiz lê os arquivos `.env` da raiz e as variáveis fornecidas
 
 Esta adaptação publica o frontend; não executa a API Fastify nem o Socket.IO dentro do site estático. O painel continua sendo uma aplicação separada, com build em `apps/painel/dist`. O banco conectado é preservado, sem execução de migrações. A estrutura de banco informada para esta adaptação não inclui as tabelas de chamados e prestadores, portanto não foi usada para substituir os serviços existentes.
 
+## Aplicativo web no Lovable
+
+A entrada padrão do repositório agora é o aplicativo React de `apps/app`. As telas, o painel, a API e os projetos nativos continuam nas pastas originais.
+
+- `npm run dev`: abre o aplicativo na porta 8080, acessível externamente.
+- `npm run build`: compila o aplicativo e o painel, preserva suas pastas de saída e copia o aplicativo para `dist` na raiz, destinada à publicação web.
+- `npm run preview`: exibe a compilação do aplicativo na porta 8080.
+- `npm run dev:api`: inicia separadamente a API existente.
+
+Na execução padrão e na compilação pela raiz, o aplicativo usa o modo `lovable` e lê os arquivos de ambiente da raiz do repositório. As variáveis fornecidas diretamente ao processo continuam com prioridade. Defina `VITE_API_URL` com o endereço HTTPS da API publicada do VRUM. Opcionalmente, defina `VITE_MAPA_ESTILO`; o padrão continua sendo `vrum-escuro`. Nunca coloque senhas do banco ou chaves privadas em variáveis `VITE_*`, pois elas são públicas no navegador.
+
+Os comandos `dev:app` e os comandos nativos executados em `apps/app` continuam lendo o ambiente dessa pasta. O painel mantém sua configuração própria.
+
+Esta preparação publica o frontend, não o servidor Fastify ou o Socket.IO. Login, chamados, mensagens e demais operações continuam dependendo da API do VRUM. A API precisa permitir a origem HTTPS usada pelo aplicativo. O banco Supabase conectado não foi modificado: a estrutura fornecida não contém as tabelas de chamados, veículos e prestadores necessárias para substituir a API atual. Não execute as migrações do VRUM nesse banco como parte desta preparação.
+
 ## Como rodar (desenvolvimento)
 
 Requisitos: Node 20+ e Docker (ou um PostgreSQL 14+).
