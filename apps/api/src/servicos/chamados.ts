@@ -15,8 +15,8 @@ import {
   type Ator, type EstadoChamado, type EventoChamado,
 } from '@vrum/shared';
 import {
-  anexosChamado, categorias, chamados, condicoesAcordadas, contestacoes, conversas, convitesChamado,
-  eventosChamado, membrosPrestador, participantesConversa, usuarios, veiculos, compartilhamentosLocalizacao,
+  anexosChamado, avaliacoes, categorias, chamados, condicoesAcordadas, contestacoes, conversas, convitesChamado,
+  eventosChamado, membrosPrestador, participantesConversa, prestadores, usuarios, veiculos, compartilhamentosLocalizacao,
 } from '../db/schema.js';
 import type { Tx } from '../db/cliente.js';
 import { ErroApp, Efeitos, conflito, naoEncontrado, proibido, somarSeg, type Contexto } from '../nucleo.js';
@@ -468,11 +468,26 @@ export async function obterChamado(ctx: Contexto, usuarioId: string, chamadoId: 
   const condicoes = await db.select().from(condicoesAcordadas).where(eq(condicoesAcordadas.chamadoId, ch.id));
   const anexos = await db.select().from(anexosChamado).where(eq(anexosChamado.chamadoId, ch.id));
   const historico = await db.select().from(eventosChamado).where(eq(eventosChamado.chamadoId, ch.id)).orderBy(eventosChamado.criadoEm);
+  const [conversa] = await db.select({ id: conversas.id }).from(conversas).where(eq(conversas.chamadoId, ch.id));
+  const [motorista] = await db.select({ id: usuarios.id, nome: usuarios.nome, fotoUrl: usuarios.fotoUrl }).from(usuarios).where(eq(usuarios.id, ch.motoristaId));
+  const [prestador] = ch.prestadorId
+    ? await db.select({ id: prestadores.id, nomeComercial: prestadores.nomeComercial, usuarioNome: prestadores.usuarioNome, fotoUrl: prestadores.fotoUrl })
+      .from(prestadores).where(eq(prestadores.id, ch.prestadorId))
+    : [];
+  const [responsavel] = ch.responsavelId
+    ? await db.select({ usuarioId: usuarios.id, nome: usuarios.nome, fotoUrl: usuarios.fotoUrl }).from(membrosPrestador)
+      .innerJoin(usuarios, eq(usuarios.id, membrosPrestador.usuarioId)).where(eq(membrosPrestador.id, ch.responsavelId))
+    : [];
+  const [categoria] = await db.select({ nome: categorias.nome, slug: categorias.slug }).from(categorias).where(eq(categorias.id, ch.categoriaId));
+  const avaliado = (await db.select({ id: avaliacoes.id }).from(avaliacoes)
+    .where(and(eq(avaliacoes.chamadoId, ch.id), eq(avaliacoes.autorId, usuarioId)))).length > 0;
   return {
     chamado: ch,
     papel,
     veiculo: veiculo && { ...veiculo, placa: mostrarPlaca ? veiculo.placa : null },
     condicoes, anexos, historico,
+    conversaId: conversa?.id ?? null,
+    motorista, prestador: prestador ?? null, responsavel: responsavel ?? null, categoria, avaliado,
   };
 }
 
@@ -481,8 +496,13 @@ export async function convitesPendentes(ctx: Contexto, usuarioId: string) {
     convite: convitesChamado,
     descricao: chamados.descricao,
     categoriaId: chamados.categoriaId,
+    categoria: categorias.nome,
+    pontoReferencia: chamados.pontoReferencia,
+    guincho: { destino: chamados.destinoEndereco, veiculoSeMove: chamados.veiculoSeMove, condicoesAcesso: chamados.condicoesAcesso },
+    anexos: sql<number>`(select count(*)::int from ${anexosChamado} a where a.chamado_id = ${chamados.id})`,
     veiculo: { marca: veiculos.marca, modelo: veiculos.modelo, ano: veiculos.ano, tipo: veiculos.tipo, observacoes: veiculos.observacoes },
   }).from(convitesChamado)
+    .innerJoin(categorias, sql`${categorias.id} = (select categoria_id from ${chamados} c2 where c2.id = ${convitesChamado.chamadoId})`)
     .innerJoin(membrosPrestador, and(eq(membrosPrestador.prestadorId, convitesChamado.prestadorId), eq(membrosPrestador.usuarioId, usuarioId)))
     .innerJoin(chamados, eq(chamados.id, convitesChamado.chamadoId))
     .innerJoin(veiculos, eq(veiculos.id, chamados.veiculoId))

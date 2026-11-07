@@ -1,0 +1,9 @@
+{
+  "name": "VRUM",
+  "short_name": "VRUM",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#101114",
+  "theme_color": "#101114",
+  "icons": [{ "src": "/icone-app.png", "sizes": "512x512", "type": "image/png" }]
+}

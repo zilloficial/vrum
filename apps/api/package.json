@@ -11,6 +11,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrar.ts",
     "db:seed": "tsx src/db/seed.ts",
+    "db:demo": "tsx src/db/demo.ts",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
