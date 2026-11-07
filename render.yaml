@@ -52,11 +52,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: vrum-api
-          property: host
+      - key: VITE_API_URL           # endereço público da API (troque se o Render der outro nome)
+        value: https://vrum-api.onrender.com
       - key: VITE_MAPA_ESTILO       # mapa OpenFreeMap (sem chave): vrum-escuro, liberty, bright, positron ou URL
         value: vrum-escuro
 
@@ -72,8 +69,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: VITE_API_URL
-        fromService:
-          type: web
-          name: vrum-api
-          property: host
+      - key: VITE_API_URL           # endereço público da API (troque se o Render der outro nome)
+        value: https://vrum-api.onrender.com

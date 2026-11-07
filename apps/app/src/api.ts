@@ -5,7 +5,10 @@ import { Preferences } from '@capacitor/preferences';
 function urlDaApi(bruta: string | undefined) {
   if (!bruta) return 'http://localhost:3333';
   const limpa = bruta.trim().replace(/\/$/, '');
-  return /^https?:\/\//.test(limpa) ? limpa : `https://${limpa}`;
+  if (/^https?:\/\//.test(limpa)) return limpa;
+  // O Render pode informar só o nome interno do serviço (ex.: "vrum-api"), que o navegador
+  // não alcança. Sem domínio, usa o endereço público dele: <nome>.onrender.com.
+  return limpa.includes('.') ? `https://${limpa}` : `https://${limpa}.onrender.com`;
 }
 export const API_URL = urlDaApi(import.meta.env.VITE_API_URL as string | undefined);
 
