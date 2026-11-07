@@ -8,13 +8,13 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @vrum/app -- --mode lovable --host 0.0.0.0 --port 8080",
+    "dev": "vite --config vite.config.ts --mode lovable --host 0.0.0.0 --port 8080",
     "dev:api": "npm run dev -w @vrum/api",
     "dev:app": "npm run dev -w @vrum/app",
     "dev:painel": "npm run dev -w @vrum/painel",
     "build": "npm run build -w @vrum/app -- --mode lovable && npm run build -w @vrum/painel && node -e \"const fs = require('node:fs'); fs.rmSync('dist', { recursive: true, force: true }); fs.cpSync('apps/app/dist', 'dist', { recursive: true });\"",
-    "build:dev": "npm run build",
-    "preview": "npm run preview -w @vrum/app -- --host 0.0.0.0 --port 8080",
+    "build:dev": "npm run typecheck -w @vrum/app && vite build --config vite.config.ts --mode development",
+    "preview": "vite preview --config vite.config.ts --host 0.0.0.0 --port 8080",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:up": "docker compose up -d postgres",
