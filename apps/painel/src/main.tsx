@@ -8,7 +8,7 @@ import '@fontsource/nunito/700.css';
 import '@fontsource/nunito/800.css';
 import '@fontsource/nunito/900.css';
 import './estilos.css';
-import { ProvedorSessao, useSessao } from './base';
+import { CampoSenha, ProvedorSessao, useSessao } from './base';
 import { EmpresaAvaliacoes, EmpresaChamados, EmpresaEquipe, EmpresaVisao } from './empresa';
 import {
   AdminAuditoria, AdminCatalogo, AdminChamados, AdminDocumentos, AdminModeracao, AdminPrestadores, AdminRegras, AdminResumo, AdminUsuarios,
@@ -31,7 +31,7 @@ function Entrar() {
         <h1>Painel</h1>
         <p className="sub" style={{ margin: 0 }}>Para empresas parceiras e administração do VRUM.</p>
         <div className="campo"><label>E-mail ou telefone</label><input className="entrada" value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" /></div>
-        <div className="campo"><label>Senha</label><input className="entrada" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" /></div>
+        <div className="campo"><label>Senha</label><CampoSenha value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" /></div>
         {erro && <div className="erro-msg">{erro}</div>}
         <button className="btn primario" style={{ justifyContent: 'center', padding: 12 }}>Entrar</button>
       </form>

@@ -88,3 +88,10 @@ h1 { font-size: 24px; } h2 { font-size: 17px; }
 .barra { height: 8px; border-radius: 8px; background: var(--card-2); overflow: hidden; }
 .barra > div { height: 100%; background: var(--verde); }
 .avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--card-2); color: var(--verde); display: grid; place-items: center; font-weight: 900; font-size: 13px; flex: none; }
+
+/* Campo de senha com "olho" para mostrar/esconder */
+.campo-senha { position: relative; display: flex; }
+.campo-senha .entrada { width: 100%; padding-right: 48px; }
+.campo-senha .olho { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: var(--texto-2); display: grid; place-items: center; cursor: pointer; }
+.campo-senha .olho:hover, .campo-senha .olho[aria-pressed="true"] { color: var(--verde); }
+.campo-senha .olho:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }

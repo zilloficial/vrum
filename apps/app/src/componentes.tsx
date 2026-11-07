@@ -1,9 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BatteryCharging, BadgeCheck, CalendarClock, Car, CircleHelp, Cog, Droplets, Fuel, Gauge, Home,
   KeyRound, LayoutDashboard, Map as IconeMapa, MessageCircle, ClipboardList, Star, Thermometer, Truck, User,
-  Wrench, Zap, Disc3, BellRing, type LucideIcon, Images,
+  Wrench, Zap, Disc3, BellRing, Eye, EyeOff, type LucideIcon, Images,
 } from 'lucide-react';
 import { ROTULO_ESTADO, type EstadoChamado } from '@vrum/shared';
 import { useSessao } from './sessao';
@@ -157,6 +157,21 @@ export function AvisoNotificacoes({ texto }: { texto: string }) {
       <button className="btn primario peq" onClick={ativar}>Ativar</button>
       <button className="link" style={{ color: 'var(--texto-3)' }} aria-label="Dispensar"
         onClick={() => { setFechado(true); try { sessionStorage.setItem('vrum.aviso-push', '1'); } catch { /* */ } }}>✕</button>
+    </div>
+  );
+}
+
+/** Campo de senha com botão para mostrar/esconder o que está sendo digitado. */
+export function CampoSenha(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [visivel, setVisivel] = useState(false);
+  return (
+    <div className="campo-senha">
+      <input {...props} type={visivel ? 'text' : 'password'} className={props.className ?? 'entrada'}
+        autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+      <button type="button" className="olho" onClick={() => setVisivel(!visivel)}
+        aria-label={visivel ? 'Esconder senha' : 'Mostrar senha'} aria-pressed={visivel} title={visivel ? 'Esconder senha' : 'Mostrar senha'}>
+        {visivel ? <EyeOff size={20} /> : <Eye size={20} />}
+      </button>
     </div>
   );
 }

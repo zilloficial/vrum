@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { get } from '../api';
 import { useSessao } from '../sessao';
-import { Erro } from '../componentes';
+import { CampoSenha, Erro } from '../componentes';
 
 export function Entrar() {
   const { entrar } = useSessao();
@@ -33,7 +33,7 @@ export function Entrar() {
           </div>
           <div className="campo">
             <label htmlFor="senha">Senha</label>
-            <input id="senha" className="entrada" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required />
+            <CampoSenha id="senha" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required />
           </div>
           <Erro texto={erro} />
           <button className="btn primario bloco" disabled={enviando}>{enviando ? 'Entrando…' : 'Entrar'}</button>
@@ -72,7 +72,7 @@ export function Cadastro() {
       <div className="campo"><label>Nome</label><input className="entrada" {...campo('nome')} autoComplete="name" required /></div>
       <div className="campo"><label>Telefone (com DDD)</label><input className="entrada" type="tel" inputMode="tel" {...campo('telefone')} placeholder="66 99999-0000" required /></div>
       <div className="campo"><label>E-mail</label><input className="entrada" type="email" {...campo('email')} autoComplete="email" required /></div>
-      <div className="campo"><label>Senha</label><input className="entrada" type="password" {...campo('senha')} autoComplete="new-password" minLength={8} required /><span className="mini">Mínimo de 8 caracteres.</span></div>
+      <div className="campo"><label>Senha</label><CampoSenha {...campo('senha')} autoComplete="new-password" minLength={8} required /><span className="mini">Mínimo de 8 caracteres.</span></div>
       <div className="campo">
         <label>Cidade</label>
         <select className="entrada" {...campo('cidadeId')}>

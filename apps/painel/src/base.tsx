@@ -1,5 +1,6 @@
 /** Cliente da API, sessão e peças comuns do painel. */
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type InputHTMLAttributes, type ReactNode } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { ROTULO_ESTADO, type EstadoChamado } from '@vrum/shared';
 
 /** Aceita a URL completa ou só o domínio (como o Render informa): nesse caso, usa https. */
@@ -130,3 +131,18 @@ export function usePedirTexto() {
 }
 
 export const iniciais = (n: string) => n.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join('');
+
+/** Campo de senha com botão para mostrar/esconder o que está sendo digitado. */
+export function CampoSenha(props: Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>) {
+  const [visivel, setVisivel] = useState(false);
+  return (
+    <div className="campo-senha">
+      <input {...props} type={visivel ? 'text' : 'password'} className={props.className ?? 'entrada'}
+        autoCapitalize="none" autoCorrect="off" spellCheck={false} />
+      <button type="button" className="olho" onClick={() => setVisivel(!visivel)}
+        aria-label={visivel ? 'Esconder senha' : 'Mostrar senha'} aria-pressed={visivel} title={visivel ? 'Esconder senha' : 'Mostrar senha'}>
+        {visivel ? <EyeOff size={20} /> : <Eye size={20} />}
+      </button>
+    </div>
+  );
+}

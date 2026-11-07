@@ -279,3 +279,10 @@ textarea.entrada { resize: vertical; min-height: 96px; }
 .trocar-area button { flex: 1; border: 0; background: transparent; border-radius: 999px; padding: 9px; font-weight: 800; cursor: pointer; color: var(--texto-2); font-size: 14px; }
 .trocar-area button.ativo { background: var(--texto); color: var(--fundo); }
 hr.div { border: 0; height: 1px; background: var(--borda); margin: 4px 0; width: 100%; }
+
+/* Campo de senha com "olho" para mostrar/esconder */
+.campo-senha { position: relative; display: flex; }
+.campo-senha .entrada { width: 100%; padding-right: 52px; }
+.campo-senha .olho { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--texto-2); display: grid; place-items: center; cursor: pointer; }
+.campo-senha .olho:hover, .campo-senha .olho[aria-pressed="true"] { color: var(--verde); }
+.campo-senha .olho:focus-visible { outline: 2px solid var(--verde); outline-offset: 1px; }
