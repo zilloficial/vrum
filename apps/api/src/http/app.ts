@@ -12,6 +12,7 @@ import * as contas from '../servicos/contas.js';
 import * as loc from '../servicos/localizacao.js';
 import * as notif from '../servicos/notificacoes.js';
 import * as prest from '../servicos/prestadores.js';
+import { rotasExtras } from './rotas-extras.js';
 
 declare module '@fastify/jwt' {
   interface FastifyJWT { payload: { sub: string; admin?: boolean }; user: { sub: string; admin?: boolean } }
@@ -21,7 +22,9 @@ const coord = z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-
 const uuid = z.string().uuid();
 const params = z.object({ id: uuid });
 
-export function criarApp(ctx: Contexto, opts: { jwtSecret: string; corsOrigin?: string; emissor?: () => Emissor | undefined }) {
+export function criarApp(ctx: Contexto, opts: {
+  jwtSecret: string; corsOrigin?: string; emissor?: () => Emissor | undefined; pastaArquivos?: string; urlPublica?: string;
+}) {
   const app = Fastify({ logger: process.env.NODE_ENV !== 'test' });
   app.register(cors, { origin: opts.corsOrigin ?? '*' });
   app.register(jwt, { secret: opts.jwtSecret, sign: { expiresIn: '30d' } });
@@ -179,6 +182,14 @@ export function criarApp(ctx: Contexto, opts: { jwtSecret: string; corsOrigin?: 
   app.post('/admin/chamados/:id/localizacao', { onRequest: autenticado }, (req) => {
     const d = z.object({ justificativa: z.string() }).parse(req.body);
     return loc.acessoAdministrativo(ctx, uid(req), params.parse(req.params).id, d.justificativa);
+  });
+
+  app.register((inst, _o, pronto) => {
+    rotasExtras(inst, ctx, {
+      pastaArquivos: opts.pastaArquivos ?? './arquivos',
+      urlPublica: opts.urlPublica ?? 'http://localhost:3333',
+      comEfeitos,
+    }).then(() => pronto(), pronto);
   });
 
   app.get('/saude', () => ({ ok: true }));
