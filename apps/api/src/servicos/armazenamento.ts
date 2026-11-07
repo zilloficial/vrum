@@ -52,7 +52,9 @@ export function armazenamentoSupabase(c: { url: string; chave: string; bucket: s
       const r = await f(`${base}/storage/v1/object/${c.bucket}/${caminho}`, {
         method: 'POST',
         headers: {
-          authorization: `Bearer ${c.chave}`, apikey: c.chave,
+          // Chaves novas (sb_secret_...) vão só em `apikey`; a antiga service_role (JWT) vai nos dois.
+          ...(c.chave.startsWith('sb_') ? {} : { authorization: `Bearer ${c.chave}` }),
+          apikey: c.chave,
           'content-type': tipoMime, 'x-upsert': 'false', 'cache-control': '31536000',
         },
         body: new Uint8Array(corpo),

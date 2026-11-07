@@ -1,12 +1,13 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, BatteryCharging, BadgeCheck, CalendarClock, Car, CircleHelp, Cog, Droplets, Fuel, Gauge, Home,
   KeyRound, LayoutDashboard, Map as IconeMapa, MessageCircle, ClipboardList, Star, Thermometer, Truck, User,
-  Wrench, Zap, Disc3, PanelTop, type LucideIcon, Images,
+  Wrench, Zap, Disc3, BellRing, type LucideIcon, Images,
 } from 'lucide-react';
 import { ROTULO_ESTADO, type EstadoChamado } from '@vrum/shared';
 import { useSessao } from './sessao';
+import { ativarPush, estadoPush } from './notificacoes-web';
 
 export function Cabecalho({ titulo, voltar = true, direita }: { titulo: ReactNode; voltar?: boolean | string; direita?: ReactNode }) {
   const nav = useNavigate();
@@ -134,4 +135,28 @@ export function Abas() {
   );
 }
 
-export { PanelTop };
+
+
+/** Convite para ativar as notificações do navegador (só aparece enquanto estiver pendente). */
+export function AvisoNotificacoes({ texto }: { texto: string }) {
+  const { avisar } = useSessao();
+  const [estado, setEstado] = useState(estadoPush());
+  const [fechado, setFechado] = useState(() => { try { return sessionStorage.getItem('vrum.aviso-push') === '1'; } catch { return false; } });
+  if (estado !== 'pendente' || fechado) return null;
+  async function ativar() {
+    try {
+      const r = await ativarPush();
+      setEstado(r);
+      avisar(r === 'ativado' ? 'Notificações ativadas' : r === 'bloqueado' ? 'Notificações bloqueadas no navegador' : 'Notificações não ativadas', r !== 'ativado');
+    } catch (e) { avisar((e as Error).message, true); }
+  }
+  return (
+    <div className="card linha" style={{ boxShadow: 'inset 0 0 0 1.5px #4da3ff55' }}>
+      <BellRing size={22} color="var(--info)" style={{ flex: 'none' }} />
+      <div className="cresce mini" style={{ color: 'var(--texto)' }}>{texto}</div>
+      <button className="btn primario peq" onClick={ativar}>Ativar</button>
+      <button className="link" style={{ color: 'var(--texto-3)' }} aria-label="Dispensar"
+        onClick={() => { setFechado(true); try { sessionStorage.setItem('vrum.aviso-push', '1'); } catch { /* */ } }}>✕</button>
+    </div>
+  );
+}

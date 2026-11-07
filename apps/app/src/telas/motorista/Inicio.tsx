@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, ChevronRight, LifeBuoy, MapPin, Search, Car } from 'lucide-react';
 import { useSessao } from '../../sessao';
 import { useCentro, useChamadoAtivo, useDados } from '../../ganchos';
-import { Avatar, IconeCategoria, Nota, SeloEstado, Vazio, Verificado } from '../../componentes';
+import { Avatar, AvisoNotificacoes, IconeCategoria, Nota, SeloEstado, Vazio, Verificado } from '../../componentes';
 import { CartaoPublicacao } from '../../publicacao';
 import type { PrestadorProximo, Publicacao, Veiculo } from '../../tipos';
 
@@ -53,6 +53,8 @@ export function Inicio() {
           <div><strong>Preciso de ajuda</strong><span>Encontre um profissional disponível agora</span></div>
         </button>
       )}
+
+      <AvisoNotificacoes texto="Ative as notificações para saber na hora quando um profissional aceitar ou estiver chegando." />
 
       <button className="card clicavel linha" style={{ border: 0, textAlign: 'left' }} onClick={() => nav(veiculo ? '/garagem' : '/garagem/novo')}>
         <div className="avatar" style={{ width: 42, height: 42, borderRadius: 12 }}><Car size={20} /></div>

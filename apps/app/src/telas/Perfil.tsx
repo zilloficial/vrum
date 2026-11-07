@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Bookmark, Briefcase, Camera, Car, ChevronRight, LogOut, Repeat, Shield, Store } from 'lucide-react';
 import { enviarArquivo, patch, post, tempoRelativo } from '../api';
 import { useSessao } from '../sessao';
 import { useDados } from '../ganchos';
 import { Avatar, Cabecalho, Carregando, Vazio } from '../componentes';
+import { ativarPush, estadoPush } from '../notificacoes-web';
 import { CartaoPublicacao } from '../publicacao';
 import type { Publicacao } from '../tipos';
 
@@ -12,6 +13,7 @@ export function Perfil() {
   const nav = useNavigate();
   const { eu, area, vinculo, trocarArea, sair, naoLidas, recarregar, avisar } = useSessao();
   const foto = useRef<HTMLInputElement>(null);
+  const [push, setPush] = useState(estadoPush());
   if (!eu) return null;
 
   async function trocarFoto(f?: File) {
@@ -54,6 +56,10 @@ export function Perfil() {
 
       <div className="lista">
         {item(<Bell size={20} />, 'Notificações', () => nav('/notificacoes'), naoLidas > 0 ? <span className="selo vivo">{naoLidas}</span> : null)}
+        {push !== 'indisponivel' && item(<Bell size={20} />, 'Notificações no navegador', async () => {
+          if (push === 'pendente') { try { setPush(await ativarPush()); } catch (e) { avisar((e as Error).message, true); } }
+          else if (push === 'bloqueado') avisar('Libere as notificações nas configurações do navegador para este site.', true);
+        }, <span className={`selo ${push === 'ativado' ? 'ok' : push === 'bloqueado' ? 'erro' : ''}`}>{push === 'ativado' ? 'Ativadas' : push === 'bloqueado' ? 'Bloqueadas' : 'Ativar'}</span>)}
         {area === 'motorista' && item(<Car size={20} />, 'Minha garagem', () => nav('/garagem'))}
         {item(<Bookmark size={20} />, 'Publicações salvas', () => nav('/salvos'))}
         {area === 'prestador' && vinculo && item(<Store size={20} />, 'Perfil do negócio', () => nav('/p/perfil'))}

@@ -33,6 +33,15 @@ services:
         value: "*"
       - key: DEMO
         value: "1"
+      # ── Integrações (veja SERVICOS.md). Pode deixar em branco: cada uma liga quando a chave existir. ──
+      - key: SUPABASE_URL          # arquivos: https://xxxx.supabase.co
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: vrum
+      - key: ORS_API_KEY           # rotas e previsão de chegada (OpenRouteService)
+        sync: false
 
   - type: web
     name: vrum-app
@@ -43,6 +52,11 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+    headers:
+      # O service worker das notificações precisa ser sempre a versão mais recente.
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache
     envVars:
       - key: NODE_VERSION
         value: "22"
@@ -51,6 +65,10 @@ services:
           type: web
           name: vrum-api
           property: host
+      - key: VITE_MAPTILER_KEY      # mapas (MapTiler). Em branco: mapa gratuito da CARTO
+        sync: false
+      - key: VITE_MAPTILER_ESTILO
+        value: dataviz-dark
 
   - type: web
     name: vrum-painel

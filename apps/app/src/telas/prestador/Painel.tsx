@@ -6,7 +6,7 @@ import { get, hora, post } from '../../api';
 import { useSessao } from '../../sessao';
 import { conectar } from '../../tempo-real';
 import { useDados } from '../../ganchos';
-import { Avatar, SeloEstado, Vazio, Verificado } from '../../componentes';
+import { Avatar, AvisoNotificacoes, SeloEstado, Vazio, Verificado } from '../../componentes';
 import type { ItemChamado } from '../../tipos';
 
 interface Convite {
@@ -73,6 +73,8 @@ export function Painel() {
         </div>
         <button className="icone-btn" onClick={() => nav('/notificacoes')} aria-label="Notificações"><Bell size={20} />{naoLidas > 0 && <span className="ponto-aviso" />}</button>
       </div>
+
+      <AvisoNotificacoes texto="Ative as notificações para receber novos chamados mesmo com o VRUM em segundo plano." />
 
       {vinculo.atende ? (
         <div className="interruptor" style={disponivel ? { boxShadow: 'inset 0 0 0 1.5px var(--verde)' } : undefined}>

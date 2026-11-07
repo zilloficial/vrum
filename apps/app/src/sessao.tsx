@@ -6,6 +6,7 @@ import { Preferences } from '@capacitor/preferences';
 import { carregarToken, get, post, quandoSessaoExpirar, salvarToken } from './api';
 import { conectar, desconectar } from './tempo-real';
 import type { Categoria, Eu, Vinculo } from './tipos';
+import { sincronizarPush } from './notificacoes-web';
 
 type Area = 'motorista' | 'prestador';
 
@@ -77,6 +78,7 @@ export function ProvedorSessao({ children }: { children: ReactNode }) {
       avisar(n.titulo);
     });
     void registrarPush();
+    void sincronizarPush();
   }, [recarregar, avisar]);
 
   useEffect(() => {

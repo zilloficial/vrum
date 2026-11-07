@@ -63,7 +63,7 @@ DATABASE_URL_TESTE=postgresql://vrum:vrum@localhost:5432/vrum_teste npm test
 npm run typecheck
 ```
 
-São 32 testes: máquina de estados, fluxo completo do chamado contra PostgreSQL real (incluindo dois aceites simultâneos), tempo real via Socket.IO, e todas as rotas de conteúdo, equipe e administração.
+São 39 testes: máquina de estados, fluxo completo do chamado contra PostgreSQL real (incluindo dois aceites simultâneos), tempo real via Socket.IO, todas as rotas de conteúdo, equipe e administração, e as integrações (Supabase, OpenRouteService e Web Push, com os serviços simulados).
 
 ## Publicar na internet (Render)
 
@@ -111,15 +111,19 @@ No plano gratuito, a API “dorme” após 15 minutos sem uso (o primeiro acesso
 | Push é só aviso | Toda notificação é gravada na central antes; avisos em tempo real só saem depois do commit. |
 | Plano pago não gera nota nem selo | Selo só por análise de documentos; notas só de atendimentos concluídos. Destaques pagos aparecem como “Publicidade”. |
 
-## O que depende de contas e chaves suas
+## Serviços externos
 
-Estas partes estão prontas no código, mas precisam de serviços externos que você contrata/configura:
+O passo a passo para criar cada conta e onde colar as chaves está em **[SERVICOS.md](SERVICOS.md)**. Cada integração liga sozinha quando a chave existe:
 
-1. **Push no celular:** criar projeto no Firebase (Android) e chave APNs (iOS), adicionar `google-services.json` / configurar no Xcode, e implementar o envio a partir da tabela `dispositivos` (o registro dos aparelhos já é feito pelo app).
-2. **Mapas:** o app usa OpenStreetMap com blocos da CARTO. Para produção, defina o provedor (Google, Mapbox, MapTiler…) em `VITE_MAPA_TILES`. Rotas/ETA e busca de estabelecimentos externos ainda não estão ligadas.
-3. **Armazenamento de arquivos:** em desenvolvimento os uploads vão para o disco (`PASTA_ARQUIVOS`). Em produção, troque por S3/R2 mantendo a rota `/arquivos`.
-4. **Hospedagem:** API + PostgreSQL num servidor; app e painel como sites estáticos (`npm run build`). Para várias instâncias da API, adicione o adaptador Redis do Socket.IO.
-5. **Confirmação de contato e recuperação de senha:** a tabela existe (`recuperacoes_acesso`); falta o provedor de SMS/e-mail.
+| Serviço | Situação |
+|---|---|
+| Arquivos — Supabase Storage | Integrado. Falta criar o projeto e colar as chaves. |
+| Mapa — MapTiler | Integrado. Sem chave, usa o mapa gratuito da CARTO. |
+| Rotas e previsão de chegada — OpenRouteService | Integrado. Sem chave, mostra a distância em linha reta. |
+| Notificações no navegador — Web Push | Integrado e automático (sem conta). |
+| Notificações no app nativo — Firebase/Apple | Próxima etapa. |
+| Confirmação de contato e recuperação de senha | A definir. |
+| Domínio próprio | Render → Settings → Custom Domains. |
 
 ## Estrutura
 

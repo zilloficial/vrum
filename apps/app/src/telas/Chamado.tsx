@@ -26,6 +26,9 @@ type Visao = VisaoChamado & {
   responsavel: { usuarioId: string; nome: string; fotoUrl: string | null } | null;
   categoria: { nome: string; slug: string };
 };
+type Rota =
+  | { disponivel: false; motivo: string }
+  | { disponivel: true; fonte: 'ROTA' | 'LINHA_RETA'; distanciaM: number; duracaoS: number | null; chegadaEstimada: string | null; linha: [number, number][] };
 type Participante = {
   usuarioId: string; papel: 'MOTORISTA' | 'PRESTADOR'; pausado: boolean;
   posicao: { lat: number; lng: number; capturadaEm: string } | null;
@@ -107,6 +110,18 @@ export function TelaChamado() {
     return () => { cancelado = true; pararRef.current?.(); pararRef.current = null; };
   }, [rastreando, pausado, id, carregarPosicoes]);
 
+  // Trajeto e previsão de chegada: recalcula quando o profissional se move (no máx. a cada 30 s).
+  const capturaPrestador = participantes.find((p) => p.papel === 'PRESTADOR')?.posicao?.capturadaEm;
+  const [rota, setRota] = useState<Rota | null>(null);
+  const ultimaRota = useRef(0);
+  useEffect(() => {
+    if (!rastreando || !id) { setRota(null); return; }
+    if (Date.now() - ultimaRota.current < 30_000 && rota) return;
+    ultimaRota.current = Date.now();
+    get<Rota>(`/chamados/${id}/rota`).then(setRota).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rastreando, id, capturaPrestador]);
+
   if (erro) return <div className="tela sem-abas"><button className="voltar" onClick={() => nav(-1)}><ArrowLeft size={20} /></button><Erro texto={erro} /></div>;
   if (!v || !estado) return <div className="tela sem-abas"><Carregando /></div>;
 
@@ -167,7 +182,8 @@ export function TelaChamado() {
     <div className="tela cheia">
       <div style={{ position: 'relative' }}>
         <Mapa centro={{ lat: ch.pontoLat, lng: ch.pontoLng }} pinos={pinos} altura="42vh"
-          linha={posPrestador ? [[posPrestador.lat, posPrestador.lng], [ch.pontoLat, ch.pontoLng]] : undefined} />
+          linha={rota?.disponivel && rota.fonte === 'ROTA' ? rota.linha : posPrestador ? [[posPrestador.lat, posPrestador.lng], [ch.pontoLat, ch.pontoLng]] : undefined}
+          linhaTracejada={!(rota?.disponivel && rota.fonte === 'ROTA')} />
         <button className="voltar" style={{ position: 'absolute', top: 'calc(12px + var(--topo))', left: 12, zIndex: 500, background: '#101114cc' }} onClick={() => nav(-1)} aria-label="Voltar"><ArrowLeft size={20} /></button>
         {rastreando && (
           <div style={{ position: 'absolute', top: 'calc(14px + var(--topo))', right: 12, zIndex: 500 }}>
@@ -225,8 +241,22 @@ export function TelaChamado() {
             {v.conversaId && <button className="icone-btn" aria-label="Conversa" onClick={() => nav(`/conversas/${v.conversaId}`)}><MessageCircle size={20} /></button>}
           </div>
         )}
-        {ch.chegadaPrevistaEm && ['A_CAMINHO', 'CONFIRMADO'].includes(estado) && (
-          <div className="linha mini"><Clock size={14} /> Chegada prevista às {hora(ch.chegadaPrevistaEm)}</div>
+        {rota?.disponivel && ['CONFIRMADO', 'A_CAMINHO'].includes(estado) && (
+          <div className="card linha" style={{ padding: '12px 16px' }}>
+            <Clock size={20} color="var(--verde)" />
+            {rota.duracaoS != null ? (
+              <div className="cresce">
+                <strong style={{ fontSize: 18 }}>{Math.max(1, Math.round(rota.duracaoS / 60))} min</strong>
+                <span className="mini"> · {(rota.distanciaM / 1000).toFixed(1).replace('.', ',')} km de carro</span>
+                {rota.chegadaEstimada && <div className="mini">Previsão de chegada às {hora(rota.chegadaEstimada)}</div>}
+              </div>
+            ) : (
+              <div className="cresce"><strong>{(rota.distanciaM / 1000).toFixed(1).replace('.', ',')} km</strong><span className="mini"> em linha reta</span></div>
+            )}
+          </div>
+        )}
+        {ch.chegadaPrevistaEm && ['A_CAMINHO', 'CONFIRMADO'].includes(estado) && !rota?.disponivel && (
+          <div className="linha mini"><Clock size={14} /> Chegada informada pelo profissional: {hora(ch.chegadaPrevistaEm)}</div>
         )}
 
         {/* Taxa de deslocamento: precisa ser aceita antes da saída */}
