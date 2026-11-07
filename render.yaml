@@ -1,16 +1,10 @@
 # Publicação no Render (https://render.com) — cria tudo de uma vez:
-#   banco PostgreSQL, API (com tempo real), app e painel.
+#   API (com tempo real), app e painel. O banco é o PostgreSQL do Supabase.
 # No Render: New → Blueprint → escolha este repositório → Apply.
 #
 # DEMO=1 carrega as contas de demonstração (senha vrum1234). Remova antes do lançamento.
 # Plano gratuito: a API "dorme" após 15 min sem uso (o primeiro acesso demora ~1 min)
-# e o banco gratuito expira após 30 dias. Para o lançamento, troque por planos pagos.
-
-databases:
-  - name: vrum-db
-    plan: free
-    databaseName: vrum
-    user: vrum
+# Para o lançamento, troque a API por um plano pago (sem pausa).
 
 services:
   - type: web
@@ -23,10 +17,8 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: DATABASE_URL
-        fromDatabase:
-          name: vrum-db
-          property: connectionString
+      - key: DATABASE_URL          # banco no Supabase: "Session pooler" (veja SERVICOS.md)
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: CORS_ORIGIN

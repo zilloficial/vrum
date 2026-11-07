@@ -6,6 +6,7 @@ Onde colar: no painel do Render (dashboard.render.com), abra o serviço indicado
 
 | Serviço | Para quê | Variáveis | Onde no Render | Sem a chave |
 |---|---|---|---|---|
+| Supabase (banco) | Banco de dados PostgreSQL | `DATABASE_URL` | `vrum-api` | **Obrigatório** — a API não sobe sem banco |
 | Supabase Storage | Guardar fotos, vídeos, áudios e documentos | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | `vrum-api` | Arquivos vão para o disco do servidor e **somem quando ele reinicia** |
 | OpenFreeMap | Mapa | — (sem chave) | — | Se não responder, usa o mapa da CARTO |
 | OpenRouteService | Rota pelas ruas e previsão de chegada | `ORS_API_KEY` | `vrum-api` | Distância em linha reta, sem previsão |
@@ -13,9 +14,30 @@ Onde colar: no painel do Render (dashboard.render.com), abra o serviço indicado
 
 ---
 
+## 0. Supabase — banco de dados (obrigatório)
+
+O mesmo projeto do Supabase guarda o banco e os arquivos.
+
+1. Crie a conta em **supabase.com** → **New project**.
+   - Nome: `vrum`
+   - **Database password:** clique em **Generate a password** e guarde num lugar seguro (gerenciador de senhas).
+   - **Region:** **South America (São Paulo)** — o mais perto de Sorriso.
+   - Plano: Free. Aguarde 1–2 minutos até o projeto ficar pronto.
+2. No topo do projeto, clique em **Connect**.
+3. Na lista de tipos de conexão, escolha **Session pooler** (não use “Direct connection”: o Render não alcança esse endereço). O endereço tem este formato:
+   `postgresql://postgres.SEU_PROJETO:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres`
+4. Copie e troque `[YOUR-PASSWORD]` pela senha do passo 1.
+5. No Render, cole o endereço completo em `DATABASE_URL` do serviço `vrum-api`.
+
+A API cria as tabelas sozinha no primeiro deploy (e as atualiza nos seguintes). A conexão é criptografada automaticamente.
+
+Opcional — verificar o certificado do servidor: em **Project Settings → Database → SSL Configuration**, baixe o certificado e cole o conteúdo na variável `DATABASE_CA` do `vrum-api`.
+
+Plano gratuito: o projeto pausa depois de 7 dias **sem nenhum uso**; enquanto o app estiver sendo usado, ele fica ativo. Se pausar, reative em **Restore project** no painel.
+
 ## 1. Supabase Storage (arquivos)
 
-1. Crie a conta em **supabase.com** e clique em **New project**. Nome: `vrum`. Região: **South America (São Paulo)**. Anote a senha do banco (não será usada pelo VRUM, mas guarde).
+1. Use o mesmo projeto do item 0.
 2. No menu lateral, abra **Storage** → **New bucket**.
    - Nome: `vrum`
    - Marque **Public bucket** (as fotos dos trabalhos e dos perfis precisam abrir no app).

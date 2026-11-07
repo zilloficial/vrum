@@ -67,7 +67,7 @@ São 44 testes: máquina de estados, tema escuro do mapa, fluxo completo do cham
 
 ## Publicar na internet (Render)
 
-O arquivo `render.yaml` cria tudo de uma vez: banco, API, app e painel.
+O arquivo `render.yaml` cria a API, o app e o painel. O banco de dados é o PostgreSQL do Supabase (crie antes — veja [SERVICOS.md](SERVICOS.md), item 0).
 
 1. Crie uma conta em [render.com](https://render.com) (pode entrar com o GitHub).
 2. **New → Blueprint**, escolha este repositório e clique em **Apply**.
@@ -79,7 +79,7 @@ O arquivo `render.yaml` cria tudo de uma vez: banco, API, app e painel.
 
 Com `DEMO=1` (padrão do blueprint) as contas de demonstração já vêm criadas. Remova essa variável antes do lançamento.
 
-No plano gratuito, a API “dorme” após 15 minutos sem uso (o primeiro acesso demora cerca de 1 minuto), o banco expira em 30 dias e os arquivos enviados são apagados quando o servidor reinicia. Para o lançamento, use planos pagos e um armazenamento de arquivos (S3/R2).
+No plano gratuito, a API “dorme” após 15 minutos sem uso (o primeiro acesso demora cerca de 1 minuto). Para o lançamento, use um plano pago para a API.
 
 ## O que cada área faz
 
