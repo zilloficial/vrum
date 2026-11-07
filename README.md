@@ -11,6 +11,24 @@ O sistema tem três partes, num único repositório:
 | **Painel** | `apps/painel` | Painel web da empresa (equipe, chamados, avaliações) e da administração. |
 | Compartilhado | `packages/shared` | Máquina de estados do chamado, contrato do tempo real, cores e catálogo — usado pelos três. |
 
+## Aplicativo no Lovable
+
+A configuração Vite da raiz abre o aplicativo existente de `apps/app`, preservando React, as rotas, os estilos e os projetos Android/iOS. Não há uma segunda versão das telas.
+
+- `npm run dev`: inicia o aplicativo na porta 8080, acessível pela prévia.
+- `npm run build`: mantém os builds do app e do painel e também gera `dist` na raiz para publicação.
+- `npm run build:dev`: gera o aplicativo em `dist` no modo development.
+- `npm run preview`: abre o build da raiz na porta 8080.
+- `npm run dev:api`: mantém o comando de desenvolvimento da API separado.
+
+### Conexão com os serviços existentes
+
+Defina `VITE_API_URL` com o endereço HTTPS público da API VRUM nas variáveis do projeto. A API deve permitir a origem da prévia e do endereço publicado em sua configuração de CORS. Sem essa variável, o cliente existente usa `http://localhost:3333`, que não aponta para a API publicada.
+
+A execução pela raiz lê os arquivos `.env` da raiz e as variáveis fornecidas pela plataforma. Os comandos específicos de `apps/app` continuam usando a configuração original dessa pasta. `VITE_MAPA_ESTILO` permanece opcional, com `vrum-escuro` como padrão. Nunca coloque senhas do banco ou chaves privadas em variáveis `VITE_`, pois elas ficam públicas no navegador.
+
+Esta adaptação publica o frontend; não executa a API Fastify nem o Socket.IO dentro do site estático. O painel continua sendo uma aplicação separada, com build em `apps/painel/dist`. O banco conectado é preservado, sem execução de migrações. A estrutura de banco informada para esta adaptação não inclui as tabelas de chamados e prestadores, portanto não foi usada para substituir os serviços existentes.
+
 ## Como rodar (desenvolvimento)
 
 Requisitos: Node 20+ e Docker (ou um PostgreSQL 14+).
@@ -27,7 +45,7 @@ npm run db:migrate                              # cria as tabelas
 npm run db:seed                                 # Sorriso–MT, categorias e prazos padrão
 npm run db:demo                                 # (opcional) contas e profissionais de exemplo
 
-npm run dev                                     # API     → http://localhost:3333
+npm run dev:api                                 # API     → http://localhost:3333
 npm run dev:app                                 # App     → http://localhost:5173
 npm run dev:painel                              # Painel  → http://localhost:5174
 ```

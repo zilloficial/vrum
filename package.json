@@ -8,16 +8,22 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @vrum/api",
+    "dev": "vite --host 0.0.0.0 --port 8080",
+    "dev:api": "npm run dev -w @vrum/api",
     "dev:app": "npm run dev -w @vrum/app",
     "dev:painel": "npm run dev -w @vrum/painel",
-    "build": "npm run build -w @vrum/app && npm run build -w @vrum/painel",
+    "build": "npm run build -w @vrum/app && npm run build -w @vrum/painel && vite build",
+    "build:dev": "npm run typecheck -w @vrum/app && vite build --mode development",
+    "preview": "vite preview --host 0.0.0.0 --port 8080",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:up": "docker compose up -d postgres",
     "db:migrate": "npm run db:migrate -w @vrum/api",
     "db:seed": "npm run db:seed -w @vrum/api",
     "db:demo": "npm run db:demo -w @vrum/api"
+  },
+  "devDependencies": {
+    "vite": "^5.4.21"
   },
   "engines": {
     "node": ">=20"
