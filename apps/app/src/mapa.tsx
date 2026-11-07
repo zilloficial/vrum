@@ -1,29 +1,40 @@
 /**
- * Mapa (Leaflet).
- *  - Com VITE_MAPTILER_KEY: blocos do MapTiler (estilo em VITE_MAPTILER_ESTILO, padrão "dataviz-dark").
- *  - Sem a chave: blocos escuros gratuitos da CARTO sobre OpenStreetMap.
- * Se o MapTiler falhar (chave ou estilo inválidos), o mapa volta sozinho para a CARTO.
+ * Mapa (Leaflet + MapLibre) com os mapas vetoriais gratuitos do OpenFreeMap — sem chave e sem limite de uso.
+ *
+ * Estilo (VITE_MAPA_ESTILO):
+ *  - "vrum-escuro" (padrão): o estilo oficial "positron" recolorido com as cores do VRUM;
+ *  - "liberty", "bright" ou "positron": estilos oficiais do OpenFreeMap, como são;
+ *  - ou a URL de um estilo próprio (ex.: editado no Maputnik).
+ * Se o OpenFreeMap não responder, o mapa usa blocos escuros da CARTO como reserva.
+ * O OpenFreeMap não calcula rotas: a rota e a previsão de chegada vêm da API (OpenRouteService).
  */
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { ESTILO_BASE_OPENFREEMAP, escurecerEstilo, type EstiloMapa } from '@vrum/shared';
 
-const CHAVE_MAPTILER = import.meta.env.VITE_MAPTILER_KEY as string | undefined;
-const ESTILO_MAPTILER = (import.meta.env.VITE_MAPTILER_ESTILO as string | undefined) ?? 'dataviz-dark';
+const ESTILO = ((import.meta.env.VITE_MAPA_ESTILO as string | undefined) || 'vrum-escuro').trim();
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-const CAMADAS = {
-  maptiler: CHAVE_MAPTILER ? {
-    url: `https://api.maptiler.com/maps/${ESTILO_MAPTILER}/256/{z}/{x}/{y}.png?key=${CHAVE_MAPTILER}`,
-    atribuicao: `&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> ${OSM}`,
-  } : null,
-  carto: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    atribuicao: `${OSM} &copy; <a href="https://carto.com/">CARTO</a>`,
-  },
+const ATRIBUICAO_OFM = `<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> ${OSM}`;
+const CARTO = {
+  url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  atribuicao: `${OSM} &copy; <a href="https://carto.com/">CARTO</a>`,
 };
-// Uma falha do MapTiler vale para a sessão inteira: não insiste em todos os mapas.
-let maptilerFalhou = false;
+
+/** O estilo é baixado e preparado uma vez por sessão e reaproveitado por todos os mapas. */
+let estiloPronto: Promise<EstiloMapa | string> | null = null;
+function carregarEstilo() {
+  estiloPronto ??= (async () => {
+    if (/^https?:\/\//.test(ESTILO)) return ESTILO;
+    if (ESTILO !== 'vrum-escuro') return `https://tiles.openfreemap.org/styles/${ESTILO}`;
+    const r = await fetch(ESTILO_BASE_OPENFREEMAP);
+    if (!r.ok) throw new Error(`OpenFreeMap respondeu ${r.status}`);
+    return escurecerEstilo(await r.json() as EstiloMapa);
+  })();
+  estiloPronto.catch(() => { estiloPronto = null; }); // tenta de novo no próximo mapa
+  return estiloPronto;
+}
 
 export type Pino = {
   id: string; lat: number; lng: number;
@@ -83,17 +94,33 @@ function OuvirMovimento({ aoMover }: { aoMover: (c: { lat: number; lng: number }
 }
 
 function Camada() {
-  const [usarCarto, setUsarCarto] = useState(!CAMADAS.maptiler || maptilerFalhou);
-  const camada = usarCarto || !CAMADAS.maptiler ? CAMADAS.carto : CAMADAS.maptiler;
-  const erros = useRef(0);
-  return (
-    <TileLayer
-      key={camada.url}
-      url={camada.url}
-      attribution={camada.atribuicao}
-      eventHandlers={usarCarto ? undefined : {
-        tileerror: () => { if (++erros.current >= 3) { maptilerFalhou = true; setUsarCarto(true); } },
-      }}
-    />
-  );
+  const mapa = useMap();
+  const [reserva, setReserva] = useState(false);
+
+  useEffect(() => {
+    let camada: L.Layer | null = null;
+    let cancelado = false;
+    (async () => {
+      try {
+        const [estilo, { maplibreGL }] = await Promise.all([
+          carregarEstilo(),
+          import('@maplibre/maplibre-gl-leaflet'),
+          import('maplibre-gl/dist/maplibre-gl.css'),
+        ]);
+        if (cancelado) return;
+        camada = maplibreGL({ style: estilo as never } as never).addTo(mapa);
+        // Crédito obrigatório pela licença dos dados (OpenStreetMap) e do serviço.
+        mapa.attributionControl?.addAttribution(ATRIBUICAO_OFM);
+      } catch (e) {
+        console.warn('Mapa vetorial indisponível, usando a reserva:', (e as Error).message);
+        if (!cancelado) setReserva(true);
+      }
+    })();
+    return () => {
+      cancelado = true;
+      if (camada) { mapa.removeLayer(camada); mapa.attributionControl?.removeAttribution(ATRIBUICAO_OFM); }
+    };
+  }, [mapa]);
+
+  return reserva ? <TileLayer url={CARTO.url} attribution={CARTO.atribuicao} /> : null;
 }

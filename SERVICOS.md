@@ -7,9 +7,9 @@ Onde colar: no painel do Render (dashboard.render.com), abra o serviço indicado
 | Serviço | Para quê | Variáveis | Onde no Render | Sem a chave |
 |---|---|---|---|---|
 | Supabase Storage | Guardar fotos, vídeos, áudios e documentos | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | `vrum-api` | Arquivos vão para o disco do servidor e **somem quando ele reinicia** |
-| MapTiler | Mapa | `VITE_MAPTILER_KEY` | `vrum-app` | Mapa gratuito da CARTO |
+| OpenFreeMap | Mapa | — (sem chave) | — | Se não responder, usa o mapa da CARTO |
 | OpenRouteService | Rota pelas ruas e previsão de chegada | `ORS_API_KEY` | `vrum-api` | Distância em linha reta, sem previsão |
-| Web Push | Notificações no navegador | — (automático) | — | — |
+| Web Push (biblioteca web-push) | Notificações no navegador | — (automático) | — | — |
 
 ---
 
@@ -29,14 +29,14 @@ Onde colar: no painel do Render (dashboard.render.com), abra o serviço indicado
 
 Como confirmar: no app, envie uma foto num chamado. O endereço da imagem passa a começar com o seu `https://…supabase.co/storage/…`.
 
-## 2. MapTiler (mapa)
+## 2. OpenFreeMap (mapa) — nada a fazer
 
-1. Crie a conta em **cloud.maptiler.com** (plano gratuito).
-2. Abra **Account → API keys** e copie a chave padrão.
-3. Recomendado: em **Allowed HTTP origins**, adicione o endereço do app (ex.: `vrum-app.onrender.com` e, depois, o seu domínio). Assim ninguém usa sua cota em outro site.
-4. No Render, serviço `vrum-app`, cole em `VITE_MAPTILER_KEY` e faça o deploy.
+O mapa usa a instância pública do **OpenFreeMap** (openfreemap.org): gratuita, sem cadastro, sem chave e sem limite de visualizações. Os dados são do OpenStreetMap, e o crédito aparece no canto do mapa, como pede a licença.
 
-O estilo padrão é `dataviz-dark` (escuro, combina com o VRUM). Para outro estilo, abra **Maps** no MapTiler, escolha um e copie o ID para `VITE_MAPTILER_ESTILO`. Se a chave ou o estilo estiverem errados, o app volta sozinho para o mapa gratuito — confira se o mapa mudou de visual depois do deploy.
+- Estilo padrão: `vrum-escuro`. O app baixa o estilo oficial **positron** e o recolore com as cores do VRUM (fundo grafite, água azul-escura, áreas verdes discretas, vias em cinza).
+- Para trocar, mude `VITE_MAPA_ESTILO` no serviço `vrum-app` para `liberty`, `bright` ou `positron` (estilos oficiais), ou para a URL de um estilo próprio editado no Maputnik.
+- Se o OpenFreeMap não responder, o app mostra o mapa da CARTO no lugar, sem quebrar a tela.
+- O OpenFreeMap não calcula rotas: a rota e a previsão de chegada vêm do OpenRouteService (próximo item).
 
 ## 3. OpenRouteService (rotas e previsão de chegada)
 
@@ -50,7 +50,7 @@ A rota é recalculada só quando o profissional anda mais de 300 m ou a cada 90 
 
 ## 4. Notificações no navegador (Web Push)
 
-Não precisa de conta. As chaves de segurança são criadas automaticamente pela API e guardadas no banco.
+Não precisa de conta. A API usa a biblioteca oficial **web-push** (github.com/web-push-libs/web-push — a mesma que você enviou), e as chaves de segurança (VAPID) são criadas automaticamente e guardadas no banco. Se quiser fixá-las, defina `VAPID_PUBLICA` e `VAPID_PRIVADA` no `vrum-api`.
 
 - O usuário toca em **Ativar** no aviso da tela inicial (motorista) ou do painel (profissional), ou em **Perfil → Notificações no navegador**.
 - **iPhone:** o Safari só entrega notificações se o VRUM for adicionado à tela de início (Compartilhar → Adicionar à Tela de Início) e aberto por esse ícone.

@@ -63,7 +63,7 @@ DATABASE_URL_TESTE=postgresql://vrum:vrum@localhost:5432/vrum_teste npm test
 npm run typecheck
 ```
 
-São 39 testes: máquina de estados, fluxo completo do chamado contra PostgreSQL real (incluindo dois aceites simultâneos), tempo real via Socket.IO, todas as rotas de conteúdo, equipe e administração, e as integrações (Supabase, OpenRouteService e Web Push, com os serviços simulados).
+São 44 testes: máquina de estados, tema escuro do mapa, fluxo completo do chamado contra PostgreSQL real (incluindo dois aceites simultâneos), tempo real via Socket.IO, todas as rotas de conteúdo, equipe e administração, e as integrações (Supabase, OpenRouteService e Web Push, com os serviços simulados).
 
 ## Publicar na internet (Render)
 
@@ -118,9 +118,9 @@ O passo a passo para criar cada conta e onde colar as chaves está em **[SERVICO
 | Serviço | Situação |
 |---|---|
 | Arquivos — Supabase Storage | Integrado. Falta criar o projeto e colar as chaves. |
-| Mapa — MapTiler | Integrado. Sem chave, usa o mapa gratuito da CARTO. |
+| Mapa — OpenFreeMap | Integrado, gratuito e sem chave. Tema escuro do VRUM; reserva da CARTO se cair. |
 | Rotas e previsão de chegada — OpenRouteService | Integrado. Sem chave, mostra a distância em linha reta. |
-| Notificações no navegador — Web Push | Integrado e automático (sem conta). |
+| Notificações no navegador — web-push | Integrado e automático (sem conta). |
 | Notificações no app nativo — Firebase/Apple | Próxima etapa. |
 | Confirmação de contato e recuperação de senha | A definir. |
 | Domínio próprio | Render → Settings → Custom Domains. |
