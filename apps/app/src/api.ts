@@ -1,7 +1,13 @@
 /** Cliente da API do VRUM. Guarda o token com o Preferences do Capacitor (cai no localStorage na web). */
 import { Preferences } from '@capacitor/preferences';
 
-export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:3333';
+/** Aceita a URL completa ou só o domínio (como o Render informa): nesse caso, usa https. */
+function urlDaApi(bruta: string | undefined) {
+  if (!bruta) return 'http://localhost:3333';
+  const limpa = bruta.trim().replace(/\/$/, '');
+  return /^https?:\/\//.test(limpa) ? limpa : `https://${limpa}`;
+}
+export const API_URL = urlDaApi(import.meta.env.VITE_API_URL as string | undefined);
 
 let token: string | null = null;
 

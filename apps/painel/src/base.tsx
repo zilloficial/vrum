@@ -2,7 +2,13 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { ROTULO_ESTADO, type EstadoChamado } from '@vrum/shared';
 
-export const API_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? 'http://localhost:3333';
+/** Aceita a URL completa ou só o domínio (como o Render informa): nesse caso, usa https. */
+function urlDaApi(bruta: string | undefined) {
+  if (!bruta) return 'http://localhost:3333';
+  const limpa = bruta.trim().replace(/\/$/, '');
+  return /^https?:\/\//.test(limpa) ? limpa : `https://${limpa}`;
+}
+export const API_URL = urlDaApi(import.meta.env.VITE_API_URL as string | undefined);
 let token = (() => { try { return localStorage.getItem('vrum.painel.token'); } catch { return null; } })();
 
 export async function api<T = any>(metodo: string, rota: string, corpo?: unknown): Promise<T> {

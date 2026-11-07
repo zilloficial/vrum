@@ -18,7 +18,8 @@ let emissor: Emissor | undefined;
 const app = criarApp(ctx, {
   jwtSecret: segredo, corsOrigin: process.env.CORS_ORIGIN, emissor: () => emissor,
   pastaArquivos: process.env.PASTA_ARQUIVOS ?? './arquivos',
-  urlPublica: process.env.URL_PUBLICA ?? `http://localhost:${porta}`,
+  // No Render, RENDER_EXTERNAL_URL é preenchida automaticamente.
+  urlPublica: process.env.URL_PUBLICA ?? process.env.RENDER_EXTERNAL_URL ?? `http://localhost:${porta}`,
 });
 await app.ready();
 emissor = criarTempoReal(app.server, ctx, (t) => app.jwt.verify(t), process.env.CORS_ORIGIN).emissor;

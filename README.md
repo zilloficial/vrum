@@ -65,6 +65,22 @@ npm run typecheck
 
 São 32 testes: máquina de estados, fluxo completo do chamado contra PostgreSQL real (incluindo dois aceites simultâneos), tempo real via Socket.IO, e todas as rotas de conteúdo, equipe e administração.
 
+## Publicar na internet (Render)
+
+O arquivo `render.yaml` cria tudo de uma vez: banco, API, app e painel.
+
+1. Crie uma conta em [render.com](https://render.com) (pode entrar com o GitHub).
+2. **New → Blueprint**, escolha este repositório e clique em **Apply**.
+3. Aguarde o primeiro deploy (uns 5–10 minutos). Os endereços ficam assim:
+   - App: `https://vrum-app.onrender.com`
+   - Painel: `https://vrum-painel.onrender.com`
+   - API: `https://vrum-api.onrender.com`
+   (se algum nome já estiver em uso, o Render acrescenta um sufixo — veja no painel dele.)
+
+Com `DEMO=1` (padrão do blueprint) as contas de demonstração já vêm criadas. Remova essa variável antes do lançamento.
+
+No plano gratuito, a API “dorme” após 15 minutos sem uso (o primeiro acesso demora cerca de 1 minuto), o banco expira em 30 dias e os arquivos enviados são apagados quando o servidor reinicia. Para o lançamento, use planos pagos e um armazenamento de arquivos (S3/R2).
+
 ## O que cada área faz
 
 **Motorista (app):** cadastro e garagem com vários veículos · tela inicial com “Preciso de ajuda”, busca, serviços, profissionais disponíveis por perto e publicações · mapa com filtros · solicitação em 5 etapas (veículo, ocorrência, ponto no mapa com referência, descrição com fotos/vídeo/áudio e dados de guincho, escolher profissional ou buscar disponíveis) · acompanhamento do chamado com mapa ao vivo, linha do tempo, taxa de deslocamento para aceitar, chat · conclusão, avaliação e contestação · histórico, mensagens, notificações, salvos · perfis públicos com seguir, “Mensagem” e “Chamar profissional”.

@@ -8,8 +8,6 @@
  *   admin      admin@vrum.app
  */
 import { eq, inArray } from 'drizzle-orm';
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { criarDb } from './cliente.js';
 import * as s from './schema.js';
 import { REGRAS_PADRAO, type Contexto } from '../nucleo.js';
@@ -43,11 +41,10 @@ export async function demo(url: string, pastaArquivos: string, urlPublica: strin
     const conta = (nome: string, email: string, telefone: string) =>
       contas.cadastrar(ctx, { nome, email, telefone, senha: 'vrum1234', cidadeId: cidade.id });
 
-    mkdirSync(pastaArquivos, { recursive: true });
-    const imagem = (nome: string, titulo: string, cor: string, simbolo: string) => {
-      writeFileSync(resolve(pastaArquivos, nome), ilustracao(titulo, cor, simbolo));
-      return `${urlPublica}/arquivos/${nome}`;
-    };
+    // Imagens embutidas (data URI): sobrevivem a servidores com disco temporário.
+    void pastaArquivos; void urlPublica;
+    const imagem = (_nome: string, titulo: string, cor: string, simbolo: string) =>
+      `data:image/svg+xml;charset=utf-8,${encodeURIComponent(ilustracao(titulo, cor, simbolo))}`;
 
     const ana = await conta('Ana Souza', 'ana@vrum.app', '66999990001');
     await contas.adicionarVeiculo(ctx, ana.id, { tipo: 'CAMINHONETE', marca: 'Toyota', modelo: 'Hilux', ano: 2022, versao: 'SRV', combustivel: 'Diesel', cor: 'Prata', placa: 'QBX1A23', observacoes: 'Estepe sob a caçamba' });

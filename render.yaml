@@ -1,0 +1,71 @@
+# Publicação no Render (https://render.com) — cria tudo de uma vez:
+#   banco PostgreSQL, API (com tempo real), app e painel.
+# No Render: New → Blueprint → escolha este repositório → Apply.
+#
+# DEMO=1 carrega as contas de demonstração (senha vrum1234). Remova antes do lançamento.
+# Plano gratuito: a API "dorme" após 15 min sem uso (o primeiro acesso demora ~1 min)
+# e o banco gratuito expira após 30 dias. Para o lançamento, troque por planos pagos.
+
+databases:
+  - name: vrum-db
+    plan: free
+    databaseName: vrum
+    user: vrum
+
+services:
+  - type: web
+    name: vrum-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm run start:producao -w @vrum/api
+    healthCheckPath: /saude
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vrum-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DEMO
+        value: "1"
+
+  - type: web
+    name: vrum-app
+    runtime: static
+    buildCommand: npm ci && npm run build -w @vrum/app
+    staticPublishPath: apps/app/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: vrum-api
+          property: host
+
+  - type: web
+    name: vrum-painel
+    runtime: static
+    buildCommand: npm ci && npm run build -w @vrum/painel
+    staticPublishPath: apps/painel/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: vrum-api
+          property: host

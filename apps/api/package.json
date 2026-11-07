@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
+    "start:producao": "tsx src/iniciar.ts",
     "test": "vitest run",
     "typecheck": "tsc -p .",
     "db:generate": "drizzle-kit generate",
@@ -25,6 +26,7 @@
     "fastify": "^5.1.0",
     "pg": "^8.23.1",
     "socket.io": "^4.8.0",
+    "tsx": "^4.23.15",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -33,7 +35,6 @@
     "@types/pg": "^8.23.1",
     "drizzle-kit": "^0.31.11",
     "socket.io-client": "^4.8.0",
-    "tsx": "^4.19.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0"
   }
