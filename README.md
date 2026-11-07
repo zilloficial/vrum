@@ -2,116 +2,125 @@
 
 Plataforma para encontrar profissionais automotivos, solicitar atendimento e acompanhar a chegada em tempo real. Lançamento em Sorriso–MT.
 
-Este repositório é o **início do código**: o núcleo do backend com o banco completo, a máquina de estados do chamado, o aceite sem duplicidade, o chat do atendimento e a localização em tempo real — tudo testado contra um PostgreSQL real.
+O sistema tem três partes, num único repositório:
 
-## Estrutura
+| Parte | Pasta | O que é |
+|---|---|---|
+| **API** | `apps/api` | Servidor Node + TypeScript (Fastify, Socket.IO, PostgreSQL via Drizzle). Toda a regra de negócio. |
+| **App** | `apps/app` | Aplicativo do motorista e do profissional (React + Capacitor), com projetos Android e iOS. Também roda no navegador. |
+| **Painel** | `apps/painel` | Painel web da empresa (equipe, chamados, avaliações) e da administração. |
+| Compartilhado | `packages/shared` | Máquina de estados do chamado, contrato do tempo real, cores e catálogo — usado pelos três. |
 
-```
-vrum/
-├── packages/shared/        Código usado pela API e pelo app
-│   └── src/
-│       ├── chamado.ts      Máquina de estados do chamado (fonte única da verdade)
-│       ├── geo.ts          Distância, posição aproximada e frescor da posição
-│       ├── tempo-real.ts   Contrato tipado dos eventos Socket.IO
-│       ├── categorias.ts   Catálogo inicial de serviços
-│       └── tema.ts         Cores e tokens da identidade visual
-├── apps/api/               Servidor (Node + TypeScript)
-│   ├── src/db/schema.ts    Modelo de dados completo (Drizzle ORM / PostgreSQL)
-│   ├── drizzle/            Migração SQL gerada
-│   ├── src/servicos/       Regras de negócio
-│   │   ├── chamados.ts     Criação, busca em etapas, convites, aceite, ações, prazos
-│   │   ├── localizacao.ts  Rastreamento autorizado, pausa, frescor, acesso admin
-│   │   ├── chat.ts         Mensagens, propostas e condições acordadas
-│   │   ├── prestadores.ts  Disponibilidade com validade e mapa público
-│   │   ├── contas.ts       Cadastro, entrada e garagem
-│   │   └── notificacoes.ts Central de notificações
-│   ├── src/http/app.ts     Rotas HTTP (Fastify + Zod + JWT)
-│   ├── src/tempo-real/     Socket.IO (salas por usuário, chamado e rastreio)
-│   └── test/               Testes de integração do fluxo completo
-└── assets/marca/           Logo e ícone aprovados
-```
-
-## Como rodar
+## Como rodar (desenvolvimento)
 
 Requisitos: Node 20+ e Docker (ou um PostgreSQL 14+).
 
 ```bash
 npm install
-npm run db:up                         # sobe o PostgreSQL
-cp apps/api/.env.example apps/api/.env
-export $(cat apps/api/.env | xargs)
-npm run db:migrate                    # cria as tabelas
-npm run db:seed                       # Sorriso–MT, categorias e prazos padrão
-npm run dev                           # API em http://localhost:3333
+npm run db:up                                   # sobe o PostgreSQL (docker compose)
+cp apps/api/.env.example apps/api/.env          # ajuste se precisar
+cp apps/app/.env.example apps/app/.env
+cp apps/painel/.env.example apps/painel/.env
+set -a; . apps/api/.env; set +a
+
+npm run db:migrate                              # cria as tabelas
+npm run db:seed                                 # Sorriso–MT, categorias e prazos padrão
+npm run db:demo                                 # (opcional) contas e profissionais de exemplo
+
+npm run dev                                     # API     → http://localhost:3333
+npm run dev:app                                 # App     → http://localhost:5173
+npm run dev:painel                              # Painel  → http://localhost:5174
 ```
 
-Testes (precisam de um banco vazio para testes; o schema é recriado a cada execução):
+### Contas de demonstração (`npm run db:demo`, senha `vrum1234`)
+
+| Conta | Uso |
+|---|---|
+| `ana@vrum.app` | Motorista com Hilux e Argo cadastrados |
+| `ze@vrum.app` | Borracharia do Zé (autônomo, disponível, socorro 24h) |
+| `oficina@vrum.app` | Dono do Auto Center Teles Pires (empresa) — use no painel |
+| `joao@vrum.app` | Mecânico do Auto Center (disponível) |
+| `admin@vrum.app` | Administrador — use no painel |
+
+Para testar o fluxo completo, abra o app em duas janelas: uma como `ana@vrum.app` (peça ajuda) e outra como `ze@vrum.app` (em Perfil → área Profissional, aceite o convite).
+
+### Celular (Android / iOS)
 
 ```bash
-createdb vrum_teste
+cd apps/app
+# No .env, VITE_API_URL deve apontar para o IP da sua máquina na rede (ex.: http://192.168.0.10:3333)
+npm run android     # build + sync + abre no Android Studio
+npm run ios         # build + sync + abre no Xcode (macOS)
+```
+
+As permissões já estão configuradas: localização (inclusive em segundo plano durante o atendimento), câmera, microfone e notificações.
+
+### Testes
+
+```bash
+createdb vrum_teste        # banco vazio só para testes — o schema é recriado a cada execução
 DATABASE_URL_TESTE=postgresql://vrum:vrum@localhost:5432/vrum_teste npm test
+npm run typecheck
 ```
 
-## Decisões que protegem as regras do documento
+São 32 testes: máquina de estados, fluxo completo do chamado contra PostgreSQL real (incluindo dois aceites simultâneos), tempo real via Socket.IO, e todas as rotas de conteúdo, equipe e administração.
 
-| Regra do documento | Como está garantida |
+## O que cada área faz
+
+**Motorista (app):** cadastro e garagem com vários veículos · tela inicial com “Preciso de ajuda”, busca, serviços, profissionais disponíveis por perto e publicações · mapa com filtros · solicitação em 5 etapas (veículo, ocorrência, ponto no mapa com referência, descrição com fotos/vídeo/áudio e dados de guincho, escolher profissional ou buscar disponíveis) · acompanhamento do chamado com mapa ao vivo, linha do tempo, taxa de deslocamento para aceitar, chat · conclusão, avaliação e contestação · histórico, mensagens, notificações, salvos · perfis públicos com seguir, “Mensagem” e “Chamar profissional”.
+
+**Profissional (app):** criar perfil (autônomo ou empresa) · disponível/indisponível com validade · convites com contagem regressiva, aceitar/recusar · propor valor, taxa de deslocamento ou “avaliação presencial” · estou a caminho, cheguei, iniciei, finalizei · navegação externa · vitrine de trabalhos · perfil do negócio (horários, raio, modalidade, veículos, plantão) · envio de documentos para verificação.
+
+**Empresa (painel):** visão geral com indicadores · atendimentos em andamento com troca de responsável · ocupação da equipe · histórico centralizado · equipe (adicionar, função, quem atende, desativar) · avaliações com resposta pública.
+
+**Administração (painel):** visão geral da operação · chamados com encerramento pelo suporte e acesso à localização com justificativa registrada · usuários (suspender) · prestadores (selo de verificação) · documentos · moderação (denúncias, contestações, avaliações) · catálogo (categorias, cidades, planos) · prazos e regras ajustáveis em tempo real · auditoria.
+
+## Regras do documento garantidas no código
+
+| Regra | Como está garantida |
 |---|---|
-| Somente um prestador confirmado por chamado | Trava `FOR UPDATE` no chamado + índice único parcial `convite_um_aceito_por_chamado`. Testado com dois aceites simultâneos. |
-| Convite antigo não pode ser aceito por notificação atrasada | O aceite confere estado e prazo do convite dentro da trava; ações do app podem enviar a `versao` vista e são recusadas se o chamado mudou. |
-| Cada profissional com seu controle de ocupação | `membros_prestador.chamado_atual_id` único (`membro_um_chamado_por_vez`). Empresa recebe vários chamados, um por profissional. |
-| Taxa de deslocamento aceita antes da saída | A máquina de estados bloqueia `CONFIRMAR` enquanto houver taxa proposta e não respondida. |
-| Ponto de atendimento separado da posição do motorista | Ponto fica no chamado; posições ficam em `posicoes_atuais`. |
-| Não mostrar posição antiga como atual | Toda posição guarda o horário de captura; a API devolve `ATUAL`, `DESATUALIZADA` ou `PERDIDA`, recusa envios antigos e fora de ordem. |
-| Localização só entre os envolvidos | Sala `rastreio:<id>` só para motorista e profissional responsável; gestores da empresa veem estado e chat, não as posições do motorista. |
-| Encerrar compartilhamento ao concluir/cancelar/abandonar | Feito na própria transição; posições são apagadas. Um job ainda fecha qualquer compartilhamento órfão. |
-| Conclusão confirmada pelo motorista, com prazo e contestação | `CONCLUSAO_SOLICITADA` → motorista confirma ou contesta; sem resposta, conclui por prazo. |
-| “Disponível” com validade | `disponivel_ate`; o job desliga quem não renovou. |
-| Mapa público sem posição exata de profissional móvel | Atendimento móvel aparece com posição aproximada (~1 km); oficina fixa, na base comercial. |
-| Placa privada | Só aparece ao prestador depois da confirmação do atendimento. |
-| Acesso admin à localização justificado e registrado | `acessos_admin_localizacao`; exige justificativa. |
+| Só um prestador confirmado por chamado | Trava no chamado + índice único `convite_um_aceito_por_chamado`. Testado com aceites simultâneos. |
+| Convite antigo não pode ser aceito | O aceite confere estado e prazo dentro da trava; ações enviam a `versao` vista e são recusadas se o chamado mudou. |
+| Ocupação por profissional | `membro_um_chamado_por_vez`. A empresa recebe vários chamados, um por profissional. |
+| Taxa de deslocamento aceita antes da saída | A máquina de estados bloqueia “Confirmar” com taxa pendente. |
+| Ponto de atendimento separado da posição do motorista | Ponto fica no chamado; posições ficam à parte. |
+| Nunca mostrar posição antiga como atual | Cada posição guarda o horário de captura; o app mostra “ao vivo”, “desatualizada” ou “sem sinal”, e o servidor recusa envios antigos ou fora de ordem. Parado, o app faz uma leitura nova a cada 20 s. |
+| Localização só entre os envolvidos | Sala de rastreio só para motorista e profissional responsável. Gestores veem estado e chat, não a posição do motorista. |
+| Encerrar compartilhamento ao concluir/cancelar/abandonar | Na própria transição; posições são apagadas. Um job fecha qualquer compartilhamento órfão. |
+| Conclusão confirmada pelo motorista, com prazo e contestação | Confirma ou contesta; sem resposta, conclui por prazo; contestação posterior em até 7 dias. |
+| “Disponível” com validade | Expira sozinho (8 h padrão); o app avisa para renovar. |
+| Mapa público sem posição exata de profissional móvel | Posição aproximada (~1 km); oficina fixa aparece na base comercial. |
+| Placa privada | Só aparece ao prestador depois da confirmação. |
+| Acesso admin à localização justificado e registrado | Exige justificativa; fica na auditoria. |
 | Push é só aviso | Toda notificação é gravada na central antes; avisos em tempo real só saem depois do commit. |
-| Um chamado ativo por motorista | Índice único parcial `chamado_um_ativo_por_motorista`. |
+| Plano pago não gera nota nem selo | Selo só por análise de documentos; notas só de atendimentos concluídos. Destaques pagos aparecem como “Publicidade”. |
 
-Os prazos ficam em `REGRAS_PADRAO` (`src/nucleo.ts`) e são semeados na tabela `configuracoes` para o painel administrativo: convite 90 s; busca em 4 etapas (3, 8, 15 e 30 km, até 5 prestadores por etapa); conclusão automática em 60 min; abandono em 6 h; disponibilidade por 8 h.
+## O que depende de contas e chaves suas
 
-## Máquina de estados do chamado
+Estas partes estão prontas no código, mas precisam de serviços externos que você contrata/configura:
+
+1. **Push no celular:** criar projeto no Firebase (Android) e chave APNs (iOS), adicionar `google-services.json` / configurar no Xcode, e implementar o envio a partir da tabela `dispositivos` (o registro dos aparelhos já é feito pelo app).
+2. **Mapas:** o app usa OpenStreetMap com blocos da CARTO. Para produção, defina o provedor (Google, Mapbox, MapTiler…) em `VITE_MAPA_TILES`. Rotas/ETA e busca de estabelecimentos externos ainda não estão ligadas.
+3. **Armazenamento de arquivos:** em desenvolvimento os uploads vão para o disco (`PASTA_ARQUIVOS`). Em produção, troque por S3/R2 mantendo a rota `/arquivos`.
+4. **Hospedagem:** API + PostgreSQL num servidor; app e painel como sites estáticos (`npm run build`). Para várias instâncias da API, adicione o adaptador Redis do Socket.IO.
+5. **Confirmação de contato e recuperação de senha:** a tabela existe (`recuperacoes_acesso`); falta o provedor de SMS/e-mail.
+
+## Estrutura
 
 ```
-BUSCANDO_PROFISSIONAL ──CONVITE_ENVIADO──▶ AGUARDANDO_RESPOSTA ──ACEITAR──▶ ACEITO_COMBINANDO ──CONFIRMAR──▶ CONFIRMADO
-        ▲                                   │  CONVITES_SEM_RESPOSTA (próxima etapa)       │ DESISTIR (volta a buscar)     │ SAIR_A_CAMINHO
-        │                                   ▼  BUSCA_ESGOTADA                              ▼                               ▼
-        └──────REABRIR_BUSCA────────── SEM_ATENDIMENTO                              CONCLUIDO ◀──CONFIRMAR_CONCLUSAO──  A_CAMINHO ─CHEGAR▶ NO_LOCAL ─INICIAR_SERVICO▶ EM_ATENDIMENTO
-                                                                                         ▲    ◀──CONCLUIR_POR_PRAZO──        │
-                                                                                         └──── CONCLUSAO_SOLICITADA ◀─SOLICITAR_CONCLUSAO─┘ (CONTESTAR_CONCLUSAO volta para EM_ATENDIMENTO)
-
-CANCELAR: motorista a qualquer momento; prestador depois de vinculado; ENCERRAR_ABANDONADO pelo sistema.
+vrum/
+├── packages/shared/src/      chamado.ts (máquina de estados) · geo.ts · tempo-real.ts · categorias.ts · tema.ts
+├── apps/api/
+│   ├── src/db/               schema.ts · migrar.ts · seed.ts · demo.ts
+│   ├── drizzle/              migração SQL
+│   ├── src/servicos/         chamados · localizacao · chat · prestadores · contas · conteudo · qualidade · equipe · admin · notificacoes
+│   ├── src/http/             app.ts (núcleo) · rotas-extras.ts
+│   ├── src/tempo-real/       socket.ts
+│   └── test/                 integração com PostgreSQL real
+├── apps/app/
+│   ├── src/telas/            Entrada · motorista/ · prestador/ · Chamado · Mensagens · Perfil · PerfilPrestador
+│   ├── android/  ios/        projetos nativos (Capacitor)
+│   └── src/                  api · sessao · tempo-real · localizacao · mapa · componentes · publicacao
+├── apps/painel/src/          base · empresa · admin · main
+└── assets/marca/             logo e ícone aprovados
 ```
-
-O app deve usar `eventosDisponiveis(estado, { ator })` de `@vrum/shared` para decidir quais botões mostrar — assim tela e servidor nunca discordam.
-
-## Principais rotas
-
-| Método | Rota | Uso |
-|---|---|---|
-| POST | `/auth/cadastro`, `/auth/entrar` | Conta e token |
-| GET/POST | `/me/veiculos` | Garagem |
-| GET | `/categorias`, `/prestadores/proximos` | Catálogo e mapa |
-| POST | `/prestadores`, `/prestadores/:id/disponibilidade` | Área do prestador |
-| POST | `/chamados` | Solicitar atendimento |
-| POST | `/chamados/:id/acoes` | `{ evento, versao?, motivo? }` — confirmar, sair, chegar, concluir, cancelar… |
-| GET | `/prestador/convites` · POST `/convites/:id/aceitar` · `/recusar` | Convites |
-| POST | `/chamados/:id/propostas` · `/propostas/:id/responder` | Valor, taxa ou avaliação presencial |
-| GET/POST | `/conversas/:id/mensagens` | Chat |
-| GET | `/chamados/:id/localizacao` | Posições com frescor |
-| POST | `/admin/chamados/:id/localizacao` | Acesso de suporte com justificativa |
-
-Socket.IO (autenticação por `auth.token`): `chamado:entrar`, `localizacao:enviar`, `localizacao:pausar`/`retomar`; o servidor emite `chamado:estado`, `localizacao:posicao`, `chat:mensagem`, `convite:novo`, `convite:encerrado`, `notificacao:nova`.
-
-## Próximos passos
-
-1. **App móvel (Capacitor)** consumindo `@vrum/shared` — telas do motorista, chamado e mapa; plugin de localização em segundo plano enviando `localizacao:enviar`.
-2. **Provedores externos**: mapas, rotas/ETA e fonte de estabelecimentos (resultados externos ainda não entram na API).
-3. **Push real**: FCM/APNs e Web Push a partir da tabela `dispositivos` (hoje só a central e o aviso por socket).
-4. **Armazenamento de arquivos** para fotos, áudios e documentos (as rotas já recebem URLs).
-5. **Publicações, avaliações, denúncias e painel admin**: tabelas prontas, rotas a construir.
-6. **Escala**: adaptador Redis do Socket.IO para várias instâncias; PostGIS se a busca por proximidade crescer.
